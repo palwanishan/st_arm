@@ -11,7 +11,7 @@ namespace gazebo
     std::cout << "Before Calling RBDL Initialize function" << std::endl;
     InitializeRBDLVariables();
     this->last_update_time = this->model->GetWorld()->SimTime();
-    this->update_connection = event::Events::ConnectWorldUpdateBegin(boost::bind(&STArmPlugin::UpdateAlgorithm, this));
+    this->update_connection = event::Events::ConnectWorldUpdateBegin(boost::bind(&STArmPlugin::Loop, this));
     std::cout << "Load..." << std::endl;
   }
 
@@ -25,8 +25,8 @@ namespace gazebo
     this->Link4 = this->model->GetLink("wrist_pitch_link");
     this->Link5 = this->model->GetLink("wrist_roll_link");
     this->Link6 = this->model->GetLink("wrist_yaw_link");
-    this->gripper_link = this->model->GetLink("gripper_left_link");            //++
-    this->gripper_link_sub = this->model->GetLink("gripper_right_link");    //++
+    this->gripper_link = this->model->GetLink("gripper_left_link");
+    this->gripper_link_sub = this->model->GetLink("gripper_right_link");
   }
 
 
@@ -60,12 +60,91 @@ namespace gazebo
   }
 
 
-  void STArmPlugin::UpdateAlgorithm()
+  void STArmPlugin::InitializeRBDLVariables()
+  {
+    std::cout << "Before Check RBDL API VERSION" << std::endl;
+    rbdl_check_api_version(RBDL_API_VERSION);
+    std::cout << "Checked RBDL API VERSION" << std::endl;
+
+    arm_rbdl.rbdl_model = new RBDLModel();
+    arm_rbdl.rbdl_model->gravity = RBDL::Math::Vector3d(0.0, 0.0, -9.81);
+
+    arm_rbdl.base_inertia = RBDLMatrix3d(0.00033, 0,        0,
+                                         0,       0.00034,  0,
+                                         0,       0,        0.00056);
+
+    arm_rbdl.shoulder_yaw_inertia = RBDLMatrix3d( 0.00024,  0,        0,
+                                                  0,        0.00040,  0,
+                                                  0,        0,        0.00026);
+
+    arm_rbdl.shoulder_pitch_inertia = RBDLMatrix3d(0.00028, 0,        0,
+                                                   0,       0.00064,  0,
+                                                   0,       0,        0.00048);
+
+    arm_rbdl.elbow_pitch_inertia = RBDLMatrix3d(0.00003,  0,        0,
+                                                0,        0.00019,  0,
+                                                0,        0,        0.00020);
+
+    arm_rbdl.wrist_pitch_inertia = RBDLMatrix3d(0.00002,  0,        0,
+                                                0,        0.00002,  0,
+                                                0,        0,        0.00001);
+
+    arm_rbdl.wrist_roll_inertia = RBDLMatrix3d(0.00001,  0,        0,
+                                                0,        0.00002,  0,
+                                                0,        0,        0.00001);
+
+    arm_rbdl.wrist_yaw_inertia = RBDLMatrix3d(0.00006,  0,        0,
+                                                0,        0.00003,  0,
+                                                0,        0,        0.00005);
+
+    // arm_rbdl.base_link = RBDLBody(0.59468, RBDLVector3d(0, 0.00033, 0.03107), arm_rbdl.base_inertia);
+    // arm_rbdl.base_joint = RBDLJoint(RBDL::JointType::JointTypeFixed, RBDLVector3d(0,0,0));
+    // arm_rbdl.base_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.base_joint, arm_rbdl.base_link);
+
+    arm_rbdl.shoulder_yaw_link = RBDLBody(0.55230, RBDLVector3d(0.00007, -0.00199, 0.09998), arm_rbdl.shoulder_yaw_inertia);
+    arm_rbdl.shoulder_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
+    arm_rbdl.shoulder_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.shoulder_yaw_joint, arm_rbdl.shoulder_yaw_link);
+
+    arm_rbdl.shoulder_pitch_link = RBDLBody(0.65326, RBDLVector3d(0.22204, 0.04573, 0), arm_rbdl.shoulder_pitch_inertia);
+    arm_rbdl.shoulder_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+    arm_rbdl.shoulder_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(1, RBDL::Math::Xtrans(RBDLVector3d(0, 0, 0.1019)), arm_rbdl.shoulder_pitch_joint, arm_rbdl.shoulder_pitch_link);
+
+    arm_rbdl.elbow_pitch_link = RBDLBody(0.17029, RBDLVector3d(0.17044, 0.00120, 0.00004), arm_rbdl.elbow_pitch_inertia);
+    arm_rbdl.elbow_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+    arm_rbdl.elbow_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(2, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.elbow_pitch_joint, arm_rbdl.elbow_pitch_link);
+
+    arm_rbdl.wrist_pitch_link = RBDLBody(0.09234, RBDLVector3d(0.04278, 0, 0.01132), arm_rbdl.wrist_pitch_inertia);
+    arm_rbdl.wrist_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+    arm_rbdl.wrist_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(3, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.wrist_pitch_joint, arm_rbdl.wrist_pitch_link);
+
+    arm_rbdl.wrist_roll_link = RBDLBody(0.08696, RBDLVector3d(0.09137, 0, 0.00036), arm_rbdl.wrist_roll_inertia);
+    arm_rbdl.wrist_roll_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(1,0,0));
+    arm_rbdl.wrist_roll_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(4, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.wrist_roll_joint, arm_rbdl.wrist_roll_link);
+
+    arm_rbdl.wrist_yaw_link = RBDLBody(0.14876, RBDLVector3d(0.05210, 0.00034, 0.02218), arm_rbdl.wrist_yaw_inertia);
+    arm_rbdl.wrist_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
+    arm_rbdl.wrist_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(5, RBDL::Math::Xtrans(RBDLVector3d(0.1045,0,0)), arm_rbdl.wrist_yaw_joint, arm_rbdl.wrist_yaw_link);
+
+    arm_rbdl.q = RBDLVectorNd::Zero(6);
+    arm_rbdl.q_dot = RBDLVectorNd::Zero(6);
+    arm_rbdl.q_d_dot = RBDLVectorNd::Zero(6);
+    arm_rbdl.tau = RBDLVectorNd::Zero(6);
+
+    arm_rbdl.jacobian = RBDLMatrixNd::Zero(6,6);
+    arm_rbdl.jacobian_prev = RBDLMatrixNd::Zero(6,6);
+    arm_rbdl.jacobian_dot = RBDLMatrixNd::Zero(6,6);
+    arm_rbdl.jacobian_inverse = RBDLMatrixNd::Zero(6,6);
+
+    std::cout << "RBDL Initialize function success" << std::endl;
+  }
+
+
+  void STArmPlugin::Loop()
   {
     current_time = this->model->GetWorld()->SimTime();
     dt = current_time.Double() - last_update_time.Double();
     last_update_time = current_time;
-      
+    
     GetJointPosition();
     SetRBDLVariables();
     ROSMsgPublish();
@@ -83,7 +162,24 @@ namespace gazebo
     th[3] = this->Joint4->Position(1);
     th[4] = this->Joint5->Position(0);
     th[5] = this->Joint6->Position(2);
-    // th[6] = this->gripper->Position(0);      //++
+  }
+
+
+  void STArmPlugin::GetJointVelocity()
+  {
+    th_dot[0] = this->Joint1->GetVelocity(2);
+    th_dot[1] = this->Joint2->GetVelocity(1);
+    th_dot[2] = this->Joint3->GetVelocity(1);
+    th_dot[3] = this->Joint4->GetVelocity(1);
+    th_dot[4] = this->Joint5->GetVelocity(0);
+    th_dot[5] = this->Joint6->GetVelocity(2);
+  }
+
+
+  void STArmPlugin::GetJointAcceleration()
+  {
+    th_d_dot = (th_dot - last_th_dot) / dt;
+    last_th_dot = th_dot;
   }
 
 
@@ -881,84 +977,6 @@ namespace gazebo
     }
   }
 // ~ ++
-
-  void STArmPlugin::InitializeRBDLVariables()
-  {
-    std::cout << "Before Check RBDL API VERSION" << std::endl;
-    rbdl_check_api_version(RBDL_API_VERSION);
-    std::cout << "Checked RBDL API VERSION" << std::endl;
-
-    arm_rbdl.rbdl_model = new RBDLModel();
-    arm_rbdl.rbdl_model->gravity = RBDL::Math::Vector3d(0.0, 0.0, -9.81);
-
-    arm_rbdl.base_inertia = RBDLMatrix3d(0.00033, 0,        0,
-                                         0,       0.00034,  0,
-                                         0,       0,        0.00056);
-
-    arm_rbdl.shoulder_yaw_inertia = RBDLMatrix3d( 0.00024,  0,        0,
-                                                  0,        0.00040,  0,
-                                                  0,        0,        0.00026);
-
-    arm_rbdl.shoulder_pitch_inertia = RBDLMatrix3d(0.00028, 0,        0,
-                                                   0,       0.00064,  0,
-                                                   0,       0,        0.00048);
-
-    arm_rbdl.elbow_pitch_inertia = RBDLMatrix3d(0.00003,  0,        0,
-                                                0,        0.00019,  0,
-                                                0,        0,        0.00020);
-
-    arm_rbdl.wrist_pitch_inertia = RBDLMatrix3d(0.00002,  0,        0,
-                                                0,        0.00002,  0,
-                                                0,        0,        0.00001);
-
-    arm_rbdl.wrist_roll_inertia = RBDLMatrix3d(0.00001,  0,        0,
-                                                0,        0.00002,  0,
-                                                0,        0,        0.00001);
-
-    arm_rbdl.wrist_yaw_inertia = RBDLMatrix3d(0.00006,  0,        0,
-                                                0,        0.00003,  0,
-                                                0,        0,        0.00005);
-
-    // arm_rbdl.base_link = RBDLBody(0.59468, RBDLVector3d(0, 0.00033, 0.03107), arm_rbdl.base_inertia);
-    // arm_rbdl.base_joint = RBDLJoint(RBDL::JointType::JointTypeFixed, RBDLVector3d(0,0,0));
-    // arm_rbdl.base_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.base_joint, arm_rbdl.base_link);
-
-    arm_rbdl.shoulder_yaw_link = RBDLBody(0.55230, RBDLVector3d(0.00007, -0.00199, 0.09998), arm_rbdl.shoulder_yaw_inertia);
-    arm_rbdl.shoulder_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
-    arm_rbdl.shoulder_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.shoulder_yaw_joint, arm_rbdl.shoulder_yaw_link);
-
-    arm_rbdl.shoulder_pitch_link = RBDLBody(0.65326, RBDLVector3d(0.22204, 0.04573, 0), arm_rbdl.shoulder_pitch_inertia);
-    arm_rbdl.shoulder_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
-    arm_rbdl.shoulder_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(1, RBDL::Math::Xtrans(RBDLVector3d(0, 0, 0.1019)), arm_rbdl.shoulder_pitch_joint, arm_rbdl.shoulder_pitch_link);
-
-    arm_rbdl.elbow_pitch_link = RBDLBody(0.17029, RBDLVector3d(0.17044, 0.00120, 0.00004), arm_rbdl.elbow_pitch_inertia);
-    arm_rbdl.elbow_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
-    arm_rbdl.elbow_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(2, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.elbow_pitch_joint, arm_rbdl.elbow_pitch_link);
-
-    arm_rbdl.wrist_pitch_link = RBDLBody(0.09234, RBDLVector3d(0.04278, 0, 0.01132), arm_rbdl.wrist_pitch_inertia);
-    arm_rbdl.wrist_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
-    arm_rbdl.wrist_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(3, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.wrist_pitch_joint, arm_rbdl.wrist_pitch_link);
-
-    arm_rbdl.wrist_roll_link = RBDLBody(0.08696, RBDLVector3d(0.09137, 0, 0.00036), arm_rbdl.wrist_roll_inertia);
-    arm_rbdl.wrist_roll_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(1,0,0));
-    arm_rbdl.wrist_roll_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(4, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.wrist_roll_joint, arm_rbdl.wrist_roll_link);
-
-    arm_rbdl.wrist_yaw_link = RBDLBody(0.14876, RBDLVector3d(0.05210, 0.00034, 0.02218), arm_rbdl.wrist_yaw_inertia);
-    arm_rbdl.wrist_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
-    arm_rbdl.wrist_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(5, RBDL::Math::Xtrans(RBDLVector3d(0.1045,0,0)), arm_rbdl.wrist_yaw_joint, arm_rbdl.wrist_yaw_link);
-
-    arm_rbdl.q = RBDLVectorNd::Zero(6);
-    arm_rbdl.q_dot = RBDLVectorNd::Zero(6);
-    arm_rbdl.q_d_dot = RBDLVectorNd::Zero(6);
-    arm_rbdl.tau = RBDLVectorNd::Zero(6);
-
-    arm_rbdl.jacobian = RBDLMatrixNd::Zero(6,6);
-    arm_rbdl.jacobian_prev = RBDLMatrixNd::Zero(6,6);
-    arm_rbdl.jacobian_dot = RBDLMatrixNd::Zero(6,6);
-    arm_rbdl.jacobian_inverse = RBDLMatrixNd::Zero(6,6);
-
-    std::cout << "RBDL Initialize function success" << std::endl;
-  }
 
 
   void STArmPlugin::SetRBDLVariables()

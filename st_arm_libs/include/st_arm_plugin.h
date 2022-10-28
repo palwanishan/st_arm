@@ -257,7 +257,7 @@ namespace gazebo
     enum ControlMode control_mode;
 
     void Load(ModelPtr _model, sdf::ElementPtr/*, sensors::SensorPtr _parent*/);    //++
-    void UpdateAlgorithm();
+    void Loop();
     void GetLinks();
     void GetJoints();
     void InitROSPubSetting();
@@ -266,6 +266,8 @@ namespace gazebo
     void InitializeRBDLVariables();
 
     void GetJointPosition();
+    void GetJointVelocity();
+    void GetJointAcceleration();
     void SetJointTorque();
     void ROSMsgPublish();
 
