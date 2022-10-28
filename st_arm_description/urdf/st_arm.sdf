@@ -1,47 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
 <sdf version='1.7'>
   <model name='st_arm'>
-
-    <joint name='world_joint' type='fixed'>
-      <child>base_link</child>
-      <parent>world</parent>
-      <axis>
-        <xyz>0 0 0</xyz>
-        <limit>
-          <lower>-1e+16</lower>
-          <upper>1e+16</upper>
-        </limit>
-        <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-        </dynamics>
-        <use_parent_model_frame>1</use_parent_model_frame>
-      </axis>      
-    </joint>
     <link name='base_link'>
-      <!--
       <inertial>
-        <pose>0.000796 -3.6e-05 0.035389 0 -0 0</pose>
-        <mass>0.068254</mass>
+        <pose>0 0.000334 0.031072 0 -0 0</pose>
+        <mass>0.594687</mass>
         <inertia>
-          <ixx>3.8257e-05</ixx>
-          <ixy>-1.4789e-08</ixy>
-          <ixz>-5.913e-07</ixz>
-          <iyy>3.6476e-05</iyy>
-          <iyz>-3.6277e-09</iyz>
-          <izz>5.5945e-05</izz>
+          <ixx>0.000331218</ixx>
+          <ixy>-4.35299e-13</ixy>
+          <ixz>1.53068e-12</ixz>
+          <iyy>0.000348337</iyy>
+          <iyz>2.26266e-06</iyz>
+          <izz>0.000569437</izz>
         </inertia>
       </inertial>
-      <collision name='base_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/base_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='base_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -75,28 +46,17 @@
     <link name='shoulder_yaw_link'>
       <pose relative_to='shoulder_yaw_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>-0.000383 -0.007781 0.091573 0 -0 0</pose>
-        <mass>0.11951</mass>
+        <pose>7.6e-05 -0.001995 0.099983 0 -0 0</pose>
+        <mass>0.552307</mass>
         <inertia>
-          <ixx>4.8912e-05</ixx>
-          <ixy>5.139e-07</ixy>
-          <ixz>7.7875e-07</ixz>
-          <iyy>8.0458e-05</iyy>
-          <iyz>3.5883e-08</iyz>
-          <izz>6.5405e-05</izz>
+          <ixx>0.000249126</ixx>
+          <ixy>8.298e-07</ixy>
+          <ixz>4.85171e-07</ixz>
+          <iyy>0.000406785</iyy>
+          <iyz>2.59356e-07</iyz>
+          <izz>0.000263429</izz>
         </inertia>
       </inertial>
-      <!--
-      <collision name='shoulder_yaw_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/shoulder_yaw_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='shoulder_yaw_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -108,14 +68,14 @@
       </visual>
     </link>
     <joint name='shoulder_pitch_joint' type='revolute'>
-      <pose relative_to='shoulder_yaw_link'>0 0 0.1024 0 -0 0</pose>
+      <pose relative_to='shoulder_yaw_link'>0 0 0.1019 0 -0 0</pose>
       <parent>shoulder_yaw_link</parent>
       <child>shoulder_pitch_link</child>
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-3.14</lower>
-          <upper>0.1</upper>
+          <lower>-3.9</lower>
+          <upper>0.76</upper>
           <effort>1</effort>
           <velocity>1</velocity>
         </limit>
@@ -130,28 +90,17 @@
     <link name='shoulder_pitch_link'>
       <pose relative_to='shoulder_pitch_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.15644 0.048066 1e-05 0 -0 0</pose>
-        <mass>0.24697</mass>
+        <pose>0.222042 0.045737 -0 0 -0 0</pose>
+        <mass>0.653268</mass>
         <inertia>
-          <ixx>9.437e-05</ixx>
-          <ixy>3.5353e-07</ixy>
-          <ixz>-1.4925e-08</ixz>
-          <iyy>0.00039967</iyy>
-          <iyz>-3.7482e-09</iyz>
-          <izz>0.0003625</izz>
+          <ixx>0.000286326</ixx>
+          <ixy>-1.49184e-07</ixy>
+          <ixz>-1.16084e-10</ixz>
+          <iyy>0.000648405</iyy>
+          <iyz>-1.03192e-10</iyz>
+          <izz>0.000486228</izz>
         </inertia>
       </inertial>
-      <!--
-      <collision name='shoulder_pitch_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/shoulder_pitch_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='shoulder_pitch_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -169,8 +118,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-0.1</lower>
-          <upper>2.8</upper>
+          <lower>-2.9</lower>
+          <upper>2.9</upper>
           <effort>1</effort>
           <velocity>1</velocity>
         </limit>
@@ -185,28 +134,17 @@
     <link name='elbow_pitch_link'>
       <pose relative_to='elbow_pitch_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.14489 0.001397 2.9e-05 0 -0 0</pose>
-        <mass>0.15458</mass>
+        <pose>0.170445 0.001209 4.8e-05 0 -0 0</pose>
+        <mass>0.170292</mass>
         <inertia>
-          <ixx>2.7811e-05</ixx>
-          <ixy>-7.6006e-08</ixy>
-          <ixz>-2.7358e-10</ixz>
-          <iyy>0.00024853</iyy>
-          <iyz>-1.2741e-10</iyz>
-          <izz>0.00024924</izz>
+          <ixx>3.02042e-05</ixx>
+          <ixy>-6.35247e-08</ixy>
+          <ixz>-2.34242e-10</ixz>
+          <iyy>0.000198778</iyy>
+          <iyz>-1.0909e-10</iyz>
+          <izz>0.000200818</izz>
         </inertia>
       </inertial>
-      <!--
-      <collision name='elbow_pitch_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/elbow_pitch_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='elbow_pitch_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -224,8 +162,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-2.8</lower>
-          <upper>3.5</upper>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
           <effort>1</effort>
           <velocity>1</velocity>
         </limit>
@@ -240,28 +178,17 @@
     <link name='wrist_pitch_link'>
       <pose relative_to='wrist_pitch_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.045384 0 0.011625 0 -0 0</pose>
-        <mass>0.04488</mass>
+        <pose>0.042786 -0 0.01133 0 -0 0</pose>
+        <mass>0.0923461</mass>
         <inertia>
-          <ixx>1.056e-05</ixx>
-          <ixy>9.3256e-17</ixy>
-          <ixz>-1.6017e-09</ixz>
-          <iyy>1.2042e-05</iyy>
-          <iyz>5.2438e-15</iyz>
-          <izz>7.0619e-06</izz>
+          <ixx>2.36446e-05</ixx>
+          <ixy>2.03859e-14</ixy>
+          <ixz>-3.88711e-07</ixz>
+          <iyy>2.44308e-05</iyy>
+          <iyz>1.60956e-14</iyz>
+          <izz>1.6139e-05</izz>
         </inertia>
       </inertial>
-      <!--
-      <collision name='wrist_pitch_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/wrist_pitch_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='wrist_pitch_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -279,8 +206,8 @@
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <lower>-3.14</lower>
-          <upper>3.14</upper>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
           <effort>1</effort>
           <velocity>1</velocity>
         </limit>
@@ -295,28 +222,17 @@
     <link name='wrist_roll_link'>
       <pose relative_to='wrist_roll_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.092875 0 0.000384 0 -0 0</pose>
-        <mass>0.04488</mass>
+        <pose>0.091375 0 0.000362 0 -0 0</pose>
+        <mass>0.0869629</mass>
         <inertia>
-          <ixx>7.0619e-06</ixx>
-          <ixy>-5.2437e-15</ixy>
-          <ixz>1.6017e-09</ixz>
-          <iyy>1.2042e-05</iyy>
-          <iyz>9.3284e-17</iyz>
-          <izz>1.056e-05</izz>
+          <ixx>1.41812e-05</ixx>
+          <ixy>-9.57639e-15</ixy>
+          <ixz>2.92507e-09</ixz>
+          <iyy>2.29933e-05</iyy>
+          <iyz>1.70366e-16</iyz>
+          <izz>1.9671e-05</izz>
         </inertia>
       </inertial>
-      <!--
-      <collision name='wrist_roll_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/wrist_roll_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='wrist_roll_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -350,28 +266,17 @@
     <link name='wrist_yaw_link'>
       <pose relative_to='wrist_yaw_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.056543 0.00077 0.031224 0 -0 0</pose>
-        <mass>0.0830727</mass>
+        <pose>0.052108 0.000348 0.022185 0 -0 0</pose>
+        <mass>0.148763</mass>
         <inertia>
-          <ixx>3.41437e-05</ixx>
-          <ixy>4.57205e-08</ixy>
-          <ixz>-1.45879e-08</ixz>
-          <iyy>1.41539e-05</iyy>
-          <iyz>-7.66183e-09</iyz>
-          <izz>2.93287e-05</izz>
+          <ixx>6.90068e-05</ixx>
+          <ixy>2.51082e-07</ixy>
+          <ixz>4.81485e-07</ixz>
+          <iyy>3.3479e-05</iyy>
+          <iyz>-1.73104e-09</iyz>
+          <izz>5.62471e-05</izz>
         </inertia>
       </inertial>
-      <!--
-      <collision name='wrist_yaw_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
-        <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/wrist_yaw_link.STL</uri>
-          </mesh>
-        </geometry>
-      </collision>
-      -->
       <visual name='wrist_yaw_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -383,13 +288,13 @@
       </visual>
     </link>
     <joint name='gripper_left_joint' type='prismatic'>
-      <pose relative_to='wrist_yaw_link'>0.083595 0.00168 0 0 -0 0</pose>
+      <pose relative_to='wrist_yaw_link'>0.083595 0 0 0 -0 0</pose>
       <parent>wrist_yaw_link</parent>
       <child>gripper_left_link</child>
       <axis>
         <xyz>0 -1 0</xyz>
         <limit>
-          <lower>-0.05</lower>
+          <lower>-0.03</lower>
           <upper>0</upper>
           <effort>1</effort>
           <velocity>1</velocity>
@@ -405,15 +310,15 @@
     <link name='gripper_left_link'>
       <pose relative_to='gripper_left_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.011191 0.017208 -0 0 -0 0</pose>
-        <mass>0.0151655</mass>
+        <pose>0.012362 0.016852 0 0 -0 0</pose>
+        <mass>0.0143612</mass>
         <inertia>
-          <ixx>1.52745e-06</ixx>
-          <ixy>1.20106e-06</ixy>
-          <ixz>3.87211e-18</ixz>
-          <iyy>7.43136e-06</iyy>
-          <iyz>-6.58552e-19</iyz>
-          <izz>8.50839e-06</izz>
+          <ixx>1.43206e-06</ixx>
+          <ixy>1.18366e-06</ixy>
+          <ixz>-3.85585e-18</ixz>
+          <iyy>7.35395e-06</iyy>
+          <iyz>6.56787e-19</iyz>
+          <izz>8.37698e-06</izz>
         </inertia>
       </inertial>
       <collision name='gripper_left_link_collision'>
@@ -436,13 +341,13 @@
       </visual>
     </link>
     <joint name='gripper_right_joint' type='prismatic'>
-      <pose relative_to='wrist_yaw_link'>0.083595 0.00168 0 0 -0 0</pose>
+      <pose relative_to='wrist_yaw_link'>0.083595 0 0 0 -0 0</pose>
       <parent>wrist_yaw_link</parent>
       <child>gripper_right_link</child>
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-0.05</lower>
+          <lower>-0.03</lower>
           <upper>0</upper>
           <effort>1</effort>
           <velocity>1</velocity>
@@ -458,15 +363,15 @@
     <link name='gripper_right_link'>
       <pose relative_to='gripper_right_joint'>0 0 0 0 -0 0</pose>
       <inertial>
-        <pose>0.011191 -0.017208 0 0 -0 0</pose>
-        <mass>0.0151655</mass>
+        <pose>0.012362 -0.016852 -0 0 -0 0</pose>
+        <mass>0.0143612</mass>
         <inertia>
-          <ixx>1.52745e-06</ixx>
-          <ixy>-1.20106e-06</ixy>
-          <ixz>1.01095e-20</ixz>
-          <iyy>7.43136e-06</iyy>
-          <iyz>9.01849e-21</iyz>
-          <izz>8.50839e-06</izz>
+          <ixx>1.43206e-06</ixx>
+          <ixy>-1.18366e-06</ixy>
+          <ixz>4.68881e-22</ixz>
+          <iyy>7.35395e-06</iyy>
+          <iyz>-5.43395e-22</iyz>
+          <izz>8.37698e-06</izz>
         </inertia>
       </inertial>
       <collision name='gripper_right_link_collision'>
