@@ -10,12 +10,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
-  trajectory_msgs
 )
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Qt5 COMPONENTS Core REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(dynamixel_sdk REQUIRED)
+find_package(RBDL REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -27,7 +27,6 @@ catkin_package(
     roscpp 
     sensor_msgs 
     std_msgs 
-    trajectory_msgs
   DEPENDS 
     Boost
 )
@@ -38,12 +37,13 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${dynamixel_sdk_INCLUDE_DIR}
+  ${RBDL_INCLUDE_DIR}
 )
 
 add_executable(
   st_arm_control 
   src/main.cpp 
-  src/rmd_utils.cpp 
+  src/rt_utils.cpp 
   src/rmd_can.cpp
   src/spi2can.cpp
   src/rmd_motor.cpp
@@ -52,7 +52,7 @@ add_executable(
   src/dynamixel.cpp
   src/callback.cpp)
 add_dependencies(st_arm_control ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(st_arm_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} Qt5::Core )
+target_link_libraries(st_arm_control ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} Qt5::Core ${RBDL_LIBRARY})
 
 install(TARGETS st_arm_control
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

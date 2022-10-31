@@ -10,6 +10,9 @@
 #define   window_size 20
 #define   num_of_motors 7
 
+using Eigen::MatrixXd;
+
+
 class Motor_Controller{
 
 public:   
@@ -34,6 +37,7 @@ public:
   VectorXd GetThetaDot();
   VectorXd GetThetaDotEst();
   VectorXd GetThetaDotSMAF();
+  VectorXd GetTorque();
   void ReadTheta();    
   void SetTorque(VectorXd tau);  
   void SetPosition(VectorXd theta);  

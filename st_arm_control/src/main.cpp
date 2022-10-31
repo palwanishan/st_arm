@@ -22,14 +22,11 @@ int main(int argc, char *argv[])
     ros::Rate loop_rate(100);
     ros::NodeHandle node_handle_;
 
-    ros::Publisher jinu_manipulator_joint_states_pub_;
-    jinu_manipulator_joint_states_pub_ = node_handle_.advertise<sensor_msgs::JointState>("jinu_manipulator/joint_states", 100);
+    ros::Publisher st_arm_joint_states_pub_;
+    st_arm_joint_states_pub_ = node_handle_.advertise<sensor_msgs::JointState>("st_arm/joint_states", 100);
 
     ros::Subscriber switch_mode_sub_;
     switch_mode_sub_ = node_handle_.subscribe("st_arm/switch_mode", 10, &Callback::SwitchMode, &callback);
-
-    ros::Subscriber om_manipulator_joint_states_sub_;
-    om_manipulator_joint_states_sub_ = node_handle_.subscribe("joint_states", 10, &Callback::joint_states_callback, &callback);
 
     ros::Subscriber gain_p_sub_;
     gain_p_sub_ = node_handle_.subscribe("st_arm/gain_p", 10, &Callback::SwitchGainP, &callback);
@@ -79,13 +76,18 @@ int main(int argc, char *argv[])
         {
             msg.name.push_back(joints_name.at(i));
             msg.position.push_back(jm_dynamics.th[i]);
-            // msg.position.push_back(jm_dynamics.ref_th[i]);
-            // msg.velocity.push_back(jm_dynamics.th_dot[i]);
-            // msg.velocity.push_back(jm_dynamics.th_dot_estimated[i]);
             msg.velocity.push_back(jm_dynamics.th_dot_sma_filtered[i]);
             msg.effort.push_back(jm_dynamics.joint_torque[i]);
         }
-        jinu_manipulator_joint_states_pub_.publish(msg);
+
+        for (uint8_t i = 0; i<3; i ++)
+        {
+            msg.effort.push_back(_DEV_MC[i].GetTorque());
+            // msg.position.push_back(jm_dynamics.ref_th[i]);
+            // msg.velocity.push_back(jm_dynamics.th_dot[i]);
+            // msg.velocity.push_back(jm_dynamics.th_dot_estimated[i]);
+        }
+        st_arm_joint_states_pub_.publish(msg);
         
         ros::spinOnce();
         loop_rate.sleep();
@@ -99,9 +101,9 @@ void *rt_motion_thread(void *arg){
     struct timespec TIME_NEXT;
     struct timespec TIME_NOW;
     int loop_count = 0;
-    int can_loop_count = 0;
-    int can_loop_count_time_sec = 0;
-    bool can_bus_data_is_open = true;
+    int comm_loop_count = 0;
+    int comm_loop_count_time_sec = 0;
+    bool is_print_comm_frequency = true;
 
     clock_gettime(CLOCK_REALTIME, &TIME_NEXT);
 
@@ -124,12 +126,34 @@ void *rt_motion_thread(void *arg){
             // jm_dynamics.GenerateTorqueVisionMode();
             jm_dynamics.GenerateGripperTorque();
             motor_ctrl.SetTorque(jm_dynamics.GetTorque());
+            // motor_ctrl.EnableFilter();
+
+
+            if(comm_loop_count > 500 && is_print_comm_frequency) {
+                comm_loop_count = 1;
+                if(comm_loop_count_time_sec < 120)
+                {
+                    comm_loop_count_time_sec++;
+                    std::cout << "    M1 fbcnt: total: " << _DEV_MC[0].count; std::cout << "  A1: " << _DEV_MC[0].count_A1;
+                    std::cout << "    M2 fbcnt: total:" << _DEV_MC[1].count;  std::cout << "  A1: " << _DEV_MC[1].count_A1;
+                    std::cout << "    M3 fbcnt: total:" << _DEV_MC[2].count;  std::cout << "  A1: " << _DEV_MC[2].count_A1;
+                    std::cout << "  92: " << _DEV_MC[2].count_92 << std::endl;
+                    std::cout << "    M3 unknown value:  " << _DEV_MC[2].unknown_value << std::endl;
+                    for(uint8_t i=0;i<3;i++)
+                    {
+                        _DEV_MC[i].count = 0;
+                        _DEV_MC[i].count_A1 = 0;
+                        _DEV_MC[i].count_92 = 0;
+                    }
+                }
+                else is_print_comm_frequency = false;
+            }
+            if(is_print_comm_frequency) comm_loop_count++;
         }
         else loop_count++;
 
         clock_gettime(CLOCK_REALTIME, &TIME_NOW);
         timespec_add_us(&TIME_NEXT, PERIOD_US);
-        
 
         clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &TIME_NEXT, NULL);
         if(timespec_cmp(&TIME_NOW, &TIME_NEXT) > 0){

@@ -58,3 +58,9 @@ float rmd_motor::GetThetaDot()
 }
 
 
+float rmd_motor::GetTorque()
+{
+    return joint_torque;
+}
+
+

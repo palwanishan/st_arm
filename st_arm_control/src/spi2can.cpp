@@ -142,6 +142,10 @@ void *spi2can::spi2can_thread(void *arg){
                         for(int j=0; j<dlc; j++) _DEV_MC[bno].enc_data[j] = recv_data1[j];
                         _DEV_MC[bno].count_92++;
                     } 
+                    else
+                    {
+                        _DEV_MC[bno].unknown_value = (int)recv_data1[0];
+                    }
                 }
             }else recv_buf1.remove(0, 1);
         }

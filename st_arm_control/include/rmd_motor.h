@@ -19,6 +19,7 @@ public:
     int     count;
     int     count_92;
     int     count_A1;
+    int     unknown_value;
 
     int     actuator_gear_ratio;
     int     actuator_direction;
@@ -33,6 +34,7 @@ public:
     float   GetTheta();
     float   GetThetaV3();
     float   GetThetaDot();
+    float   GetTorque();
 
 private:
     float   joint_velocity;

@@ -19,12 +19,25 @@
 #include <tf2_msgs/TFMessage.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <rbdl/rbdl.h>
 
 using Eigen::Vector3d;
 using Eigen::Quaterniond;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
+
+
+namespace RBDL = RigidBodyDynamics;
+namespace RBDLMath = RigidBodyDynamics::Math;
+
+using RBDLModel = RBDL::Model;
+using RBDLBody = RBDL::Body;
+using RBDLVector3d = RBDL::Math::Vector3d;
+using RBDLVectorNd = RBDL::Math::VectorNd;
+using RBDLMatrixNd = RBDL::Math::MatrixNd;
+using RBDLMatrix3d = RBDL::Math::Matrix3d;
+using RBDLJoint = RBDL::Joint;
 
 
 #define deg2rad		0.017453292519943
@@ -55,11 +68,27 @@ using Eigen::Matrix3d;
 #define M6 0.28174 //m_Link6;
 #define inner_dt 0.001
 
+typedef struct
+{
+  RBDLModel* rbdl_model;
+  RBDLVectorNd q, q_dot, q_d_dot, tau;
+  RBDLMatrixNd jacobian, jacobian_prev, jacobian_dot, jacobian_inverse;
+
+  unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id;                               //id have information of the body
+  RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link;
+  RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint;
+  RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia; //Inertia of links
+} Arm_RBDL;
+
+
 namespace Dynamics
 {
     class JMDynamics
     {
         const std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4", "joint5", "joint6"};
+
+        Arm_RBDL arm_rbdl;
+
 
         double dt = 0.002;
         double time = 0;
@@ -159,10 +188,10 @@ namespace Dynamics
         VectorXd th_dot = VectorXd::Zero(6);
         VectorXd th_dot_estimated = VectorXd::Zero(7);
         VectorXd th_dot_sma_filtered = VectorXd::Zero(7);
-        VectorXd last_th_dot = VectorXd::Zero(6);
+        VectorXd last_th_dot = VectorXd::Zero(7);
+        VectorXd th_d_dot = VectorXd::Zero(7);  
         VectorXd zero_vector_6 = VectorXd::Zero(6);
         float th_gripper{0};
-
 
         int count = 0;
         int step_time = 5;
@@ -208,6 +237,10 @@ namespace Dynamics
         void PostureGeneration();
         void Loop();
         void SwitchMode(const std_msgs::Int32ConstPtr & msg);
+
+
+        void SetRBDLVariables();
+        void InitializeRBDLVariables();
     };
 }
 
