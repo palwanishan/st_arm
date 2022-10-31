@@ -1,0 +1,3 @@
+<launch>
+  <node name="jinu_manipulator_controller" pkg="jinu_manipulator_controller" type="jinu_manipulator_controller" output="screen"/>
+</launch>
