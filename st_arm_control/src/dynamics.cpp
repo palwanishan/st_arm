@@ -35,6 +35,7 @@ namespace Dynamics
             case draw_infinity:
                 GenerateTrajectory();
                 GenerateTorqueManipulationMode();
+                GenerateGripperTorque();
                 break;
             default:
                 GenerateTorqueGravityCompensation();
@@ -212,9 +213,9 @@ namespace Dynamics
         count++;   
         trajectory = PI * (1 - cos(PI * (count_time/step_time)));
 
-        // hmd_position(0) = 0.3;
-        // hmd_position(1) = 0 - 0.3*sin(PI/2*(count_time/step_time));
-        // hmd_position(2) = 0.35 + 0.15*sin(PI*(count_time/step_time));
+        hmd_position(0) = 0.3;
+        hmd_position(1) = 0 - 0.3*sin(PI/2*(count_time/step_time));
+        hmd_position(2) = 0.35 + 0.15*sin(PI*(count_time/step_time));
     }
 
 
@@ -267,16 +268,19 @@ namespace Dynamics
     }
 
 
-    void JMDynamics::GenerateTorqueGravityCompensation(){
+    void JMDynamics::GenerateTorqueGravityCompensation()
+    {
+        SetRBDLVariables();
 
-        tau_gravity_compensation[0] = 0;
-        tau_gravity_compensation[1] = 1.5698*sin(th_joint[1])*sin(th_joint[2]) - 1.5698*cos(th_joint[1])*cos(th_joint[2]) - 2.9226*cos(th_joint[1]) + 0.21769*cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + 0.21769*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])) + 0.056114*sin(th_joint[5] + 1.5708)*(cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2]))) + 0.056114*cos(th_joint[4] + 1.5708)*cos(th_joint[5] + 1.5708)*(1.0*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) - cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])));
-        tau_gravity_compensation[2] = 1.5698*sin(th_joint[1])*sin(th_joint[2]) - 1.5698*cos(th_joint[1])*cos(th_joint[2]) + 0.21769*cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + 0.21769*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])) + 0.056114*sin(th_joint[5] + 1.5708)*(cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2]))) + 0.056114*cos(th_joint[4] + 1.5708)*cos(th_joint[5] + 1.5708)*(1.0*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) - cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])));
-        tau_gravity_compensation[3] = 0.21769*cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + 0.21769*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])) + 0.056114*sin(th_joint[5] + 1.5708)*(cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2]))) + 0.056114*cos(th_joint[4] + 1.5708)*cos(th_joint[5] + 1.5708)*(1.0*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) - cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])));
-        tau_gravity_compensation[4] = 0.056114*cos(th_joint[5] + 1.5708)*sin(th_joint[4] + 1.5708)*(cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])));
-        tau_gravity_compensation[5] = 0.056114*cos(th_joint[5] + 1.5708)*(1.0*sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) - cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2]))) + 0.056114*cos(th_joint[4] + 1.5708)*sin(th_joint[5] + 1.5708)*(cos(th_joint[3] - 1.5708)*(cos(th_joint[1])*sin(th_joint[2]) + cos(th_joint[2])*sin(th_joint[1])) + sin(th_joint[3] - 1.5708)*(cos(th_joint[1])*cos(th_joint[2]) - 1.0*sin(th_joint[1])*sin(th_joint[2])));
-
-        joint_torque = tau_gravity_compensation;
+        RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
+        for(uint8_t i = 0; i < 6; i++)
+        {
+            tau_gravity_compensation(i) = arm_rbdl.tau(i) * gain_r[i];
+        }
+        for(uint8_t i = 0; i < 6; i++)
+        {
+            joint_torque[i] = tau_gravity_compensation[i];
+        }
     }
 
 
@@ -396,20 +400,6 @@ namespace Dynamics
                     gain_w(1) * ee_orientation_error(1), 
                     gain_w(2) * ee_orientation_error(2);
 
-        // tau_gravity_compensation[0] = 0.0;
-        // tau_gravity_compensation[1] = 1.9076*sin(th[1])*sin(th[2]) - 1.9076*cos(th[1])*cos(th[2]) - 2.7704*cos(th[1]) + 0.43376*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43376*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14068*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14068*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[2] = 1.9076*sin(th[1])*sin(th[2]) - 1.9076*cos(th[1])*cos(th[2]) + 0.43376*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43376*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14068*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14068*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[3] = 0.43376*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43376*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14068*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14068*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[4] = 0.14068*cos(th[5] + 1.5708)*sin(th[4] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[5] = 0.14068*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14068*cos(th[4] + 1.5708)*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-
-        // tau_gravity_compensation[0] = 0.0;
-        // tau_gravity_compensation[1] = 1.9318*sin(th[1])*sin(th[2]) - 1.9318*cos(th[1])*cos(th[2]) - 2.9498*cos(th[1]) + 0.43025*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43025*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14096*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[2] = 1.9318*sin(th[1])*sin(th[2]) - 1.9318*cos(th[1])*cos(th[2]) + 0.43025*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43025*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14096*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[3] = 0.43025*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43025*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14096*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[4] = 0.14096*cos(th[5] + 1.5708)*sin(th[4] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-        // tau_gravity_compensation[5] = 0.14096*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-
         SetRBDLVariables();
 
         RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
@@ -417,7 +407,6 @@ namespace Dynamics
         {
             tau_gravity_compensation(i) = arm_rbdl.tau(i);
         }
-
 
         virtual_spring << ee_force(0), ee_force(1), ee_force(2), ee_momentum(0), ee_momentum(1), ee_momentum(2);
 

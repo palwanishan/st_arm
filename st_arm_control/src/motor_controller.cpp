@@ -6,7 +6,7 @@ extern Dynamixel _WRIST_MC;
 
 Motor_Controller::Motor_Controller()
 {
-  _DEV_MC[0].actuator_direction = -1;    _DEV_MC[0].actuator_gear_ratio = 8;  _DEV_MC[0].joint_initial_position = 0.0;       _DEV_MC[0].torque_to_data = 200;    _DEV_MC[0].actuator_torque_limit = 4.5*2;      _DEV_MC[0].data_to_radian = tic2radL; // 10430.2197
+  _DEV_MC[0].actuator_direction = -1;    _DEV_MC[0].actuator_gear_ratio = 6;  _DEV_MC[0].joint_initial_position = 0.0;       _DEV_MC[0].torque_to_data = 100;    _DEV_MC[0].actuator_torque_limit = 4.5*2;      _DEV_MC[0].data_to_radian = tic2radL; // 10430.2197
   _DEV_MC[1].actuator_direction = -1;    _DEV_MC[1].actuator_gear_ratio = 8;  _DEV_MC[1].joint_initial_position = -PI;       _DEV_MC[1].torque_to_data = 200;    _DEV_MC[1].actuator_torque_limit = 4.5*2;      _DEV_MC[1].data_to_radian = tic2radL;   //53.42
   _DEV_MC[2].actuator_direction =  1;    _DEV_MC[2].actuator_gear_ratio = 8;  _DEV_MC[2].joint_initial_position = 2.8992;    _DEV_MC[2].torque_to_data = 200;    _DEV_MC[2].actuator_torque_limit = 4.5*2;      _DEV_MC[2].data_to_radian = tic2radL;
 }

@@ -40,9 +40,6 @@ int main(int argc, char *argv[])
     ros::Subscriber gain_task_space_p_sub_;
     gain_task_space_p_sub_ = node_handle_.subscribe("st_arm/gain_TS_P", 10, &Callback::SwitchGainTaskSpaceP, &callback);
 
-    ros::Subscriber gain_task_space_d_sub_;
-    gain_task_space_d_sub_ = node_handle_.subscribe("st_arm/gain_TS_D", 10, &Callback::SwitchGainTaskSpaceD, &callback);
-
     ros::Subscriber gain_task_space_w_sub_;
     gain_task_space_w_sub_ = node_handle_.subscribe("st_arm/gain_TS_W", 10, &Callback::SwitchGainTaskSpaceW, &callback);
 
@@ -92,6 +89,7 @@ int main(int argc, char *argv[])
         ros::spinOnce();
         loop_rate.sleep();
     }
+    _WRIST_MC.~Dynamixel();
     return 0;
 }
 
@@ -120,12 +118,13 @@ void *rt_motion_thread(void *arg){
         }
         else if(loop_count > 1000){
             loop_count++;
-            jm_dynamics.SetTheta(motor_ctrl.GetJointTheta());
-            jm_dynamics.SetThetaDotSMAF(motor_ctrl.GetThetaDotSMAF());
-            jm_dynamics.GenerateTorqueManipulationMode();
+            jm_dynamics.Loop();
+            // jm_dynamics.SetTheta(motor_ctrl.GetJointTheta());
+            // jm_dynamics.SetThetaDotSMAF(motor_ctrl.GetThetaDotSMAF());
+            // jm_dynamics.GenerateTorqueManipulationMode();
             // jm_dynamics.GenerateTorqueVisionMode();
-            jm_dynamics.GenerateGripperTorque();
-            motor_ctrl.SetTorque(jm_dynamics.GetTorque());
+            // jm_dynamics.GenerateGripperTorque();
+            // motor_ctrl.SetTorque(jm_dynamics.GetTorque());
             // motor_ctrl.EnableFilter();
 
 

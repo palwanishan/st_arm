@@ -31,13 +31,6 @@ void Callback::SwitchGainTaskSpaceP(const std_msgs::Float32MultiArrayConstPtr &m
   jm_dynamics.gain_p_task_space[2] = msg->data.at(2);
 }
 
-void Callback::SwitchGainTaskSpaceD(const std_msgs::Float32MultiArrayConstPtr &msg)
-{
-  jm_dynamics.gain_d_task_space[0] = msg->data.at(0);
-  jm_dynamics.gain_d_task_space[1] = msg->data.at(1);
-  jm_dynamics.gain_d_task_space[2] = msg->data.at(2);
-}
-
 void Callback::SwitchGainTaskSpaceW(const std_msgs::Float32MultiArrayConstPtr &msg)
 {
   jm_dynamics.gain_w_task_space[0] = msg->data.at(0);
