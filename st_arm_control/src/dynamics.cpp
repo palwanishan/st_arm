@@ -28,6 +28,7 @@ namespace Dynamics
                 break;
             case manipulation_mode:
                 GenerateTorqueManipulationMode();
+                GenerateGripperTorque();
                 break;
             case vision_mode:
                 GenerateTorqueVisionMode();
@@ -270,16 +271,19 @@ namespace Dynamics
 
     void JMDynamics::GenerateTorqueGravityCompensation()
     {
+        gain_d = gain_d_task_space;
+
         SetRBDLVariables();
 
         RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
         for(uint8_t i = 0; i < 6; i++)
         {
+            tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot_sma_filtered[i]; 
             tau_gravity_compensation(i) = arm_rbdl.tau(i) * gain_r[i];
         }
         for(uint8_t i = 0; i < 6; i++)
         {
-            joint_torque[i] = tau_gravity_compensation[i];
+            joint_torque[i] = tau_gravity_compensation[i] - tau_viscous_damping[i];
         }
     }
 
