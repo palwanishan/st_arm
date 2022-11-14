@@ -14,6 +14,7 @@ namespace Dynamics
     {
         SetTheta(motor_ctrl.GetJointTheta());
         SetThetaDotSMAF(motor_ctrl.GetThetaDotSMAF());
+        SetRBDLVariables();
         PostureGeneration();
         motor_ctrl.SetTorque(GetTorque());
     }
@@ -403,8 +404,6 @@ namespace Dynamics
         ee_momentum << gain_w(0) * ee_orientation_error(0), 
                     gain_w(1) * ee_orientation_error(1), 
                     gain_w(2) * ee_orientation_error(2);
-
-        SetRBDLVariables();
 
         RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
         for(uint8_t i = 0; i < 6; i++)

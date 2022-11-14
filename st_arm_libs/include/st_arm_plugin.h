@@ -27,6 +27,8 @@
 #include <geometry_msgs/PoseStamped.h>
 //#include <gazebo_plugins/gazebo_ros_camera_utils.h>   //++
 #include <std_msgs/Bool.h>     //++
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Float32.h>
 #include <rbdl/rbdl.h>
 
 
@@ -55,13 +57,14 @@ using RBDLMatrixNd = RBDL::Math::MatrixNd;
 using RBDLMatrix3d = RBDL::Math::Matrix3d;
 using RBDLJoint = RBDL::Joint;
 
-#define NUM_OF_JOINT_AND_TOOL 7
+#define NUM_OF_JOINTS_WITH_TOOL 8
+#define NUM_OF_JOINTS_WITHOUT_TOOL 6
 
 #define PI 3.14159265358979
 #define M2R 2*PI/4096
-#define deg2rad		0.017453292519943
-#define rad2deg		57.295779513082323
-#define g 9.81;
+#define DEG2RAD		0.017453292519943
+#define RAD2DEG		57.295779513082323
+#define G 9.81;
 
 #define L1 0.16
 #define L2 0.25
@@ -86,25 +89,6 @@ using RBDLJoint = RBDL::Joint;
 #define M6 0.239 //m_Link6;
 #define inner_dt 0.001
 
-//*************** Trajectory Variables**************//    
-double step_time = 0;
-double cnt_time = 0;
-unsigned int cnt = 0;
-unsigned int start_flag = 0;
-
-float qw = 1;
-float qx = 0;
-float qy = 0;
-float qz = 0;
-
-float pre_data_x = 0;
-float pre_data_y = 0;
-float pre_data_z = 0;
-
-float input_P = 200;
-float input_D = 0;
-
-
 
 typedef struct
 {
@@ -126,22 +110,42 @@ namespace gazebo
   class STArmPlugin : public ModelPlugin//, CameraPlugin, GazeboRosCameraUtils     //++ CameraPlugin, GazeboRosCameraUtils
   {
     ModelPtr model;
-    LinkPtr Base, Link1, Link2, Link3, Link4, Link5, Link6;
-    JointPtr Joint1, Joint2, Joint3, Joint4, Joint5, Joint6;
+    LinkPtr Base, Link1, Link2, Link3, Link4, Link5, Link6, LinkGripperL, LinkGripperR;
+    JointPtr Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, JointGripperL, JointGripperR;
 
-    LinkPtr gripper_link, gripper_link_sub;
-    JointPtr gripper, gripper_sub;
+    LinkPtr rbq3_base_link;
+    JointPtr rbq3_base_joint;
+    SensorPtr Sensor;
+    ImuSensorPtr RBQ3BaseImu;
 
-    const std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4", "joint5", "joint6"};
+
+    const std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint_g_l", "joint_g_r"};
 
     common::Time last_update_time;
     common::Time current_time;
     event::ConnectionPtr update_connection;
     double dt;
-    double time = 0;
+    double time{0};
     double trajectory;
 
-    double gripper_activation = 0;   //++
+
+    //*************** Trajectory Variables**************//
+    double step_time{0};
+    double cnt_time{0};
+    unsigned int cnt{0};
+    unsigned int start_flag{0};
+
+    // float qw{0};
+    // float qx{0};
+    // float qy{0};
+    // float qz{0};
+
+    // float pre_data_x{0};
+    // float pre_data_y{0};
+    // float pre_data_z{0};
+
+    // float input_P = 200;
+    // float input_D{0};
 
     Vector3d manipulator_com, 
             ref_com_position, 
@@ -179,10 +183,15 @@ namespace gazebo
               initial_ee_position, 
               hmd_position;
     Vector3d gain_p, gain_d, gain_w;
-    VectorXd gain_p_joint_space = VectorXd(6);
+    VectorXd gain_p_joint_space = VectorXd(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd gain_d_joint_space = VectorXd(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd gain_p_joint_space_idle = VectorXd(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd gain_d_joint_space_idle = VectorXd(NUM_OF_JOINTS_WITH_TOOL);
     VectorXd gain_r = VectorXd(6);
-    VectorXd gain_d_joint_space = VectorXd(6);
     VectorXd threshold = VectorXd(6);
+    Vector3d gain_p_task_space, gain_w_task_space;
+    
+    Vector3d rbq3_base_imu_rpy, rbq3_base_rpy, rbq3_base_rpy_ref, rbq3_base_rpy_dot, rbq3_base_torque;
 
     Vector3d ee_rotation_x, ee_rotation_y, ee_rotation_z, 
             ref_ee_rotation_x, ref_ee_rotation_y, ref_ee_rotation_z,
@@ -190,17 +199,17 @@ namespace gazebo
 
     Matrix3d ee_rotation, ref_ee_rotation;
 
-    Quaterniond ref_ee_quaternion;  
-    Quaterniond ee_quaternion;  
+    Quaterniond ref_ee_quaternion;
+    Quaterniond ee_quaternion;
     Quaterniond hmd_quaternion;
 
-    VectorXd th = VectorXd::Zero(6);
-    VectorXd ref_th = VectorXd::Zero(6);
-    VectorXd last_th = VectorXd::Zero(6);
-    VectorXd th_dot = VectorXd::Zero(6);
-    VectorXd last_th_dot = VectorXd::Zero(6);
-    VectorXd th_d_dot = VectorXd::Zero(6);
-    VectorXd initial_pose = VectorXd::Zero(6);
+    VectorXd th = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd ref_th = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd last_th = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd th_dot = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd last_th_dot = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd th_d_dot = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd init_position = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
     
     MatrixXd A0 = MatrixXd::Zero(4,4);  MatrixXd A1 = MatrixXd::Zero(4,4); MatrixXd A2 = MatrixXd::Zero(4,4); 
     MatrixXd A3 = MatrixXd::Zero(4,4);
@@ -209,41 +218,39 @@ namespace gazebo
     MatrixXd T03 = MatrixXd::Zero(4,4);
     MatrixXd T04 = MatrixXd::Zero(4,4); MatrixXd T05 = MatrixXd::Zero(4,4); MatrixXd T06 = MatrixXd::Zero(4,4);
     MatrixXd T12 = MatrixXd::Zero(4,4); MatrixXd T23 = MatrixXd::Zero(4,4); MatrixXd T34 = MatrixXd::Zero(4,4); 
-    MatrixXd T45 = MatrixXd::Zero(4,4); MatrixXd T56 = MatrixXd::Zero(4,4);    
+    MatrixXd T45 = MatrixXd::Zero(4,4); MatrixXd T56 = MatrixXd::Zero(4,4);
+
     MatrixXd joint_limit = MatrixXd::Zero(2,6);
 
-    VectorXd joint_torque = VectorXd::Zero(6);
-    VectorXd tau_gravity_compensation = VectorXd::Zero(6);
-    VectorXd gripper_torque = VectorXd::Zero(2);
+    VectorXd joint_torque = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    VectorXd tau_gravity_compensation = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+    // VectorXd gripper_torque = VectorXd::Zero(2);
     VectorXd virtual_spring = VectorXd::Zero(6);
-    VectorXd tau_viscous_damping = VectorXd::Zero(6);
+    VectorXd tau_viscous_damping = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
     VectorXd tau_rbdl = VectorXd::Zero(6);
     VectorXd tau = VectorXd::Zero(6);
 
     // Temporary variables
-    Quaterniond om_ee_quaternion;
-    Vector3d om_ee_position;
-    Matrix3d om_ee_rotation;
-    MatrixXd om_A0 = MatrixXd::Zero(4,4); MatrixXd om_A1 = MatrixXd::Zero(4,4); MatrixXd om_A2 = MatrixXd::Zero(4,4); 
-    MatrixXd om_A3 = MatrixXd::Zero(4,4); MatrixXd om_A4 = MatrixXd::Zero(4,4);  MatrixXd om_A5 = MatrixXd::Zero(4,4); 
-    MatrixXd om_A6 = MatrixXd::Zero(4,4); MatrixXd om_T06 = MatrixXd::Zero(4,4);
 
-    std::vector<double> present_joint_angle_;
-
-    VectorXd om_th = VectorXd::Zero(7);
     // End of Temporary variables
 
     ros::NodeHandle node_handle;
     ros::Publisher pub_joint_state;
-    ros::Publisher pub_joint_state2;
-    ros::Subscriber sub_mode_selector;
-    ros::Subscriber gain;
-    ros::Subscriber sub_open_manipulator_joint_state;
+    ros::Publisher pub_joint_state_deg;
     ros::Publisher pub_ee_pose;
     ros::Publisher pub_ref_ee_pose;
-    ros::Subscriber sub_hmd_tf;
+    ros::Publisher pub_base_imu_pose;
+
+    ros::Subscriber sub_gripper_state;
+    ros::Subscriber sub_hmd_pose;
+    ros::Subscriber sub_mode_selector;
+    ros::Subscriber sub_gain_p_task_space;
+    ros::Subscriber sub_gain_w_task_space;
+    ros::Subscriber sub_gain_p_joint_space;
+    ros::Subscriber sub_gain_d_joint_space;
+    ros::Subscriber sub_gain_r;
+
     //ros::Publisher pub_gazebo_camera;   //++
-    ros::Subscriber sub_gripper_activation;
 
     enum ControlMode
     {
@@ -260,6 +267,7 @@ namespace gazebo
     void Loop();
     void GetLinks();
     void GetJoints();
+    void GetSensors();
     void InitROSPubSetting();
 
     void SetRBDLVariables();
@@ -268,6 +276,7 @@ namespace gazebo
     void GetJointPosition();
     void GetJointVelocity();
     void GetJointAcceleration();
+    void GetSensorValues();
     void SetJointTorque();
     void ROSMsgPublish();
 
@@ -280,10 +289,19 @@ namespace gazebo
     void Motion5();
     void SwitchMode(const std_msgs::Int32Ptr & msg);
     void SwitchGain(const std_msgs::Int32Ptr & msg);
+    void SwitchGainJointSpaceP(const std_msgs::Float32MultiArrayConstPtr &msg);
+    void SwitchGainJointSpaceD(const std_msgs::Float32MultiArrayConstPtr &msg);
+    void SwitchGainTaskSpaceP(const std_msgs::Float32MultiArrayConstPtr &msg);
+    void SwitchGainTaskSpaceW(const std_msgs::Float32MultiArrayConstPtr &msg);
+    void SwitchGainR(const std_msgs::Float32MultiArrayConstPtr &msg);
+    void GripperStateCallback(const std_msgs::Float32ConstPtr &msg);
+    void HMDPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
+
+    void RBQ3Motion1();
     
     void GripperControl();
-    void HMDTFCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
-    void GripperActivationCallback(const std_msgs::Bool &msg);     //++
+    // void HMDTFCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
+    // void GripperActivationCallback(const std_msgs::Bool &msg);     //++
   };
   GZ_REGISTER_MODEL_PLUGIN(STArmPlugin);
 }
