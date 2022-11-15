@@ -190,6 +190,13 @@ namespace gazebo
     VectorXd gain_r = VectorXd(6);
     VectorXd threshold = VectorXd(6);
     Vector3d gain_p_task_space, gain_w_task_space;
+
+
+    Vector3d rbq3_ref_trajectory, amplitude, frequency, horizontal_translation, vertical_translation, rbq3_base_range_of_motion;
+    float traj_time;
+    float rbq_base_gain_p;
+    float rbq_base_gain_d;
+    bool is_move_rbq3;
     
     Vector3d rbq3_base_imu_rpy, rbq3_base_rpy, rbq3_base_rpy_ref, rbq3_base_rpy_dot, rbq3_base_torque;
 
@@ -249,6 +256,7 @@ namespace gazebo
     ros::Subscriber sub_gain_p_joint_space;
     ros::Subscriber sub_gain_d_joint_space;
     ros::Subscriber sub_gain_r;
+    ros::Subscriber sub_rbq3_motion_switch;
 
     //ros::Publisher pub_gazebo_camera;   //++
 
@@ -294,6 +302,7 @@ namespace gazebo
     void SwitchGainTaskSpaceP(const std_msgs::Float32MultiArrayConstPtr &msg);
     void SwitchGainTaskSpaceW(const std_msgs::Float32MultiArrayConstPtr &msg);
     void SwitchGainR(const std_msgs::Float32MultiArrayConstPtr &msg);
+    void SwitchModeRBQ3(const std_msgs::Bool &msg);
     void GripperStateCallback(const std_msgs::Float32ConstPtr &msg);
     void HMDPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
 

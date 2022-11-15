@@ -69,6 +69,8 @@ namespace gazebo
     sub_gripper_state = node_handle.subscribe("unity/gripper_state", 10, &gazebo::STArmPlugin::GripperStateCallback, this);
     sub_hmd_pose = node_handle.subscribe("unity/hmd_pose", 1, &gazebo::STArmPlugin::HMDPoseCallback, this);
 
+    sub_rbq3_motion_switch = node_handle.subscribe("rbq3/motion_switch", 10, &gazebo::STArmPlugin::SwitchModeRBQ3, this);
+
     pub_ee_pose = node_handle.advertise<geometry_msgs::TransformStamped>("st_arm/ee_pose", 10);
     pub_ref_ee_pose = node_handle.advertise<geometry_msgs::TransformStamped>("st_arm/ref_ee_pose", 10);
     //pub_gazebo_camera = node_handle.advertise<sensor_msgs::Image>("st_arm/gazebocamera", 60);  //++
@@ -167,7 +169,7 @@ namespace gazebo
     GetSensorValues();
     SetRBDLVariables();
     ROSMsgPublish();
-    PostureGeneration();  RBQ3Motion1();
+    PostureGeneration();  if(is_move_rbq3) RBQ3Motion1();
     SetJointTorque();
   }
 
@@ -316,11 +318,10 @@ namespace gazebo
 
   void STArmPlugin::Idle()
   {
-    gain_p_joint_space_idle << 100, 100, 100, 30, 30, 30, 35, 35;
-    // gain_p_joint_space_idle << 100, 100, 100, 0, 0, 0;
-    // gain_d_joint_space << 0.1, 0.1, 0.1, 0, 0, 0;
-    gain_d_joint_space_idle << 1, 1, 1, 0.1, 0.1, 0.1, 0.15, 0.15;
-
+    gain_p_joint_space_idle << 200, 200, 200, 100, 1000, 100, 35, 35;
+    // gain_d_joint_space_idle << 20, 20, 20, 10, 10, 10, 3, 3;
+    gain_d_joint_space_idle << 1, 1, 1, 1, 1, 1, 1, 1;
+    // gain_d_joint_space_idle = gain_p_joint_space_idle * 0.1;
     step_time = 4; 
     
     cnt_time = cnt * inner_dt;
@@ -338,10 +339,13 @@ namespace gazebo
       ref_th[7] =  -0.03 * trajectory;
     }
 
+    // joint_torque = gain_p_joint_space_idle * (ref_th - th) - gain_d_joint_space_idle * th_dot;
+
     for (uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
     {
       joint_torque[i] = gain_p_joint_space_idle[i] * (ref_th[i] - th[i]) - gain_d_joint_space_idle[i] * th_dot[i];
     }
+
     cnt++;
   }
 
@@ -1038,16 +1042,29 @@ namespace gazebo
 
   void STArmPlugin::RBQ3Motion1()
   {
-    step_time = 4; 
-    
-    cnt_time = cnt * inner_dt;
-    trajectory = 0.5 * (1 - cos(PI * (cnt_time / step_time)));
-    
-    rbq3_base_rpy_ref[0] = 30 * trajectory * DEG2RAD;
-    rbq3_base_rpy_ref[1] = 30 * trajectory * DEG2RAD;
+    traj_time = cnt * inner_dt;
+    frequency << 0.2, 0.2, 0.2;
+    amplitude << 1, 1, 1;
+    horizontal_translation << 0, 1, 0;
+    vertical_translation << 0, 0, 0;
+    // rbq3_base_range_of_motion << 20, 20, 20;
+    rbq3_base_range_of_motion << 0, 0, 0;
 
-    float rbq_base_gain_p = 1000;
-    float rbq_base_gain_d = 50;
+    for(uint8_t i=0; i<3; i++)
+    {
+      rbq3_ref_trajectory[i] = amplitude[i] * sin(2 * PI * frequency[i] * (traj_time - horizontal_translation[i])) + vertical_translation[i];
+      rbq3_base_rpy_ref[i] = DEG2RAD * rbq3_base_range_of_motion[i] * rbq3_ref_trajectory[i];
+    }
+
+    rbq_base_gain_p = 1000;
+    rbq_base_gain_d = 50;
+
     rbq3_base_torque = rbq_base_gain_p * (rbq3_base_rpy_ref - rbq3_base_rpy) - rbq_base_gain_d * rbq3_base_rpy_dot;
+  }
+
+
+  void STArmPlugin::SwitchModeRBQ3(const std_msgs::Bool &msg)
+  {
+    is_move_rbq3 = &msg;
   }
 }
