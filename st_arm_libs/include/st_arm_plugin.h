@@ -113,14 +113,39 @@ namespace gazebo
     LinkPtr Base, Link1, Link2, Link3, Link4, Link5, Link6, LinkGripperL, LinkGripperR;
     JointPtr Joint1, Joint2, Joint3, Joint4, Joint5, Joint6, JointGripperL, JointGripperR;
 
+
+    //*************** RBQ3 Variables**************//
+
+    // JointPtr FL_hip_joint, FL_thigh_joint, FL_calf_joint,
+    //           FR_hip_joint, FR_thigh_joint, FR_calf_joint,
+    //           RL_hip_joint, RL_thigh_joint, RL_calf_joint,
+    //           RR_hip_joint, RR_thigh_joint, RR_calf_joint;
+
+    JointPtr HRR, HRP, HRK, HLR, HLP, HLK, FRR, FRP, FRK, FLR, FLP, FLK;
+
     LinkPtr rbq3_base_link;
     JointPtr rbq3_base_joint;
     SensorPtr Sensor;
     ImuSensorPtr RBQ3BaseImu;
 
+    Vector3d rbq3_ref_trajectory, amplitude, frequency, horizontal_translation, vertical_translation, rbq3_base_range_of_motion;
+    float traj_time;
+    float rbq_base_gain_p;
+    float rbq_base_gain_d;
+    bool is_move_rbq3{true};
+    
+    Vector3d rbq3_base_imu_rpy, rbq3_base_rpy, rbq3_base_rpy_ref, rbq3_base_rpy_dot, rbq3_base_torque;
+
+    const std::vector<std::string> jnt_names{"HRR", "HRP", "HRK", "HLR", "HLP", "HLK", "FRR", "FRP", "FRK", "FLR", "FLP", "FLK"};
+
+    VectorXd quad_th = VectorXd::Zero(12);
+    VectorXd quad_th_dot = VectorXd::Zero(12);
+    VectorXd quad_joint_torque = VectorXd::Zero(12);
+    VectorXd quad_th_ref = VectorXd::Zero(12);
+
 
     const std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint_g_l", "joint_g_r"};
-
+    
     common::Time last_update_time;
     common::Time current_time;
     event::ConnectionPtr update_connection;
@@ -191,14 +216,6 @@ namespace gazebo
     VectorXd threshold = VectorXd(6);
     Vector3d gain_p_task_space, gain_w_task_space;
 
-
-    Vector3d rbq3_ref_trajectory, amplitude, frequency, horizontal_translation, vertical_translation, rbq3_base_range_of_motion;
-    float traj_time;
-    float rbq_base_gain_p;
-    float rbq_base_gain_d;
-    bool is_move_rbq3;
-    
-    Vector3d rbq3_base_imu_rpy, rbq3_base_rpy, rbq3_base_rpy_ref, rbq3_base_rpy_dot, rbq3_base_torque;
 
     Vector3d ee_rotation_x, ee_rotation_y, ee_rotation_z, 
             ref_ee_rotation_x, ref_ee_rotation_y, ref_ee_rotation_z,
@@ -307,6 +324,10 @@ namespace gazebo
     void HMDPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
 
     void RBQ3Motion1();
+    void GetRBQ3Joints();
+    void GetRBQ3JointPosition();
+    void GetRBQ3JointVelocity();
+    void SetRBQ3JointTorque();
     
     void GripperControl();
     // void HMDTFCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);

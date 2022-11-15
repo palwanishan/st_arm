@@ -13,6 +13,13 @@ namespace gazebo
     InitializeRBDLVariables();
     this->last_update_time = this->model->GetWorld()->SimTime();
     this->update_connection = event::Events::ConnectWorldUpdateBegin(boost::bind(&STArmPlugin::Loop, this));
+    
+    is_move_rbq3 = true;
+    if(is_move_rbq3)
+    {
+      GetRBQ3Joints();
+    }
+
     std::cout << "Load..." << std::endl;
   }
 
@@ -28,8 +35,6 @@ namespace gazebo
     this->Link6 = this->model->GetLink("wrist_yaw_link");
     this->LinkGripperL = this->model->GetLink("gripper_left_link");
     this->LinkGripperR = this->model->GetLink("gripper_right_link");
-
-    this->rbq3_base_link = this->model->GetLink("rbq3_base_link");
   }
 
 
@@ -43,8 +48,6 @@ namespace gazebo
     this->Joint6 = this->model->GetJoint("wrist_yaw_joint");
     this->JointGripperL = this->model->GetJoint("gripper_left_joint");
     this->JointGripperR = this->model->GetJoint("gripper_right_joint");
-
-    this->rbq3_base_joint = this->model->GetJoint("rbq3_base_joint");
   }
 
 
@@ -169,8 +172,15 @@ namespace gazebo
     GetSensorValues();
     SetRBDLVariables();
     ROSMsgPublish();
-    PostureGeneration();  if(is_move_rbq3) RBQ3Motion1();
+    PostureGeneration();  
     SetJointTorque();
+    if(is_move_rbq3)
+    {
+      GetRBQ3JointPosition();
+      GetRBQ3JointVelocity();
+      RBQ3Motion1();
+      SetRBQ3JointTorque();
+    } 
   }
 
 
@@ -184,9 +194,6 @@ namespace gazebo
     th[5] = this->Joint6->Position(2);
     th[6] = this->JointGripperL->Position(1);
     th[7] = this->JointGripperR->Position(1);
-
-    rbq3_base_rpy[0] = this->rbq3_base_joint->Position(0);
-    rbq3_base_rpy[1] = this->rbq3_base_joint->Position(1);
   }
 
 
@@ -200,9 +207,6 @@ namespace gazebo
     th_dot[5] = this->Joint6->GetVelocity(2);
     th_dot[6] = this->JointGripperL->GetVelocity(1);
     th_dot[7] = this->JointGripperR->GetVelocity(1);
-
-    rbq3_base_rpy_dot[0] = this->rbq3_base_joint->GetVelocity(0);
-    rbq3_base_rpy_dot[1] = this->rbq3_base_joint->GetVelocity(1);
   }
 
 
@@ -297,9 +301,6 @@ namespace gazebo
     this->Joint6->SetForce(2, joint_torque(5));
     this->JointGripperL->SetForce(1, joint_torque(6));
     this->JointGripperR->SetForce(1, joint_torque(7));
-
-    this->rbq3_base_joint->SetForce(0, rbq3_base_torque(0));
-    this->rbq3_base_joint->SetForce(1, rbq3_base_torque(1));
   }
 
 
@@ -1060,6 +1061,13 @@ namespace gazebo
     rbq_base_gain_d = 50;
 
     rbq3_base_torque = rbq_base_gain_p * (rbq3_base_rpy_ref - rbq3_base_rpy) - rbq_base_gain_d * rbq3_base_rpy_dot;
+
+    float quad_js_p = 10;
+    float quad_js_d = 0;
+    for(uint8_t i=0; i<12; i++)
+    {
+      quad_joint_torque[i] = quad_js_p * (quad_th_ref[i] - quad_th[i]) - quad_js_d * quad_th_dot[i];
+    }
   }
 
 
@@ -1067,4 +1075,84 @@ namespace gazebo
   {
     is_move_rbq3 = &msg;
   }
+
+
+  void STArmPlugin::GetRBQ3Joints()
+  {
+    this->HRR = this->model->GetJoint("RR_hip_joint");
+    this->HRP = this->model->GetJoint("RR_thigh_joint");
+    this->HRK = this->model->GetJoint("RR_calf_joint");
+    this->HLR = this->model->GetJoint("RL_hip_joint");
+    this->HLP = this->model->GetJoint("RL_thigh_joint");
+    this->HLK = this->model->GetJoint("RL_calf_joint");
+    this->FRR = this->model->GetJoint("FR_hip_joint");
+    this->FRP = this->model->GetJoint("FR_thigh_joint");
+    this->FRK = this->model->GetJoint("FR_calf_joint");
+    this->FLR = this->model->GetJoint("FL_hip_joint");
+    this->FLP = this->model->GetJoint("FL_thigh_joint");
+    this->FLK = this->model->GetJoint("FL_calf_joint");
+
+    this->rbq3_base_joint = this->model->GetJoint("rbq3_base_joint");
+  }
+
+
+  void STArmPlugin::GetRBQ3JointPosition()
+  {
+    quad_th[0] = this->HRR->Position(0);
+    quad_th[1] = this->HRP->Position(1);
+    quad_th[2] = this->HRK->Position(1);
+    quad_th[3] = this->HLR->Position(0);
+    quad_th[4] = this->HLP->Position(1);
+    quad_th[5] = this->HLK->Position(1);
+    quad_th[6] = this->FRR->Position(0);
+    quad_th[7] = this->FRP->Position(1);
+    quad_th[8] = this->FRK->Position(1);
+    quad_th[9] = this->FLR->Position(0);
+    quad_th[10] = this->FLP->Position(1);
+    quad_th[11] = this->FLK->Position(1);
+
+    rbq3_base_rpy[0] = this->rbq3_base_joint->Position(0);
+    rbq3_base_rpy[1] = this->rbq3_base_joint->Position(1);
+  }
+
+
+  void STArmPlugin::GetRBQ3JointVelocity()
+  {
+    quad_th_dot[0] = this->HRR->GetVelocity(0);
+    quad_th_dot[1] = this->HRP->GetVelocity(1);
+    quad_th_dot[2] = this->HRK->GetVelocity(1);
+    quad_th_dot[3] = this->HLR->GetVelocity(0);
+    quad_th_dot[4] = this->HLP->GetVelocity(1);
+    quad_th_dot[5] = this->HLK->GetVelocity(1);
+    quad_th_dot[6] = this->FRR->GetVelocity(0);
+    quad_th_dot[7] = this->FRP->GetVelocity(1);
+    quad_th_dot[8] = this->FRK->GetVelocity(1);
+    quad_th_dot[9] = this->FLR->GetVelocity(0);
+    quad_th_dot[10] = this->FLP->GetVelocity(1);
+    quad_th_dot[11] = this->FLK->GetVelocity(1);
+
+    rbq3_base_rpy_dot[0] = this->rbq3_base_joint->GetVelocity(0);
+    rbq3_base_rpy_dot[1] = this->rbq3_base_joint->GetVelocity(1);
+  }
+
+
+  void STArmPlugin::SetRBQ3JointTorque()
+  {
+    this->HRR->SetForce(0, quad_joint_torque(0));
+    this->HRP->SetForce(1, quad_joint_torque(1));
+    this->HRK->SetForce(1, quad_joint_torque(2));
+    this->HLR->SetForce(0, quad_joint_torque(3));
+    this->HLP->SetForce(1, quad_joint_torque(4));
+    this->HLK->SetForce(1, quad_joint_torque(5));
+    this->FRR->SetForce(0, quad_joint_torque(6));
+    this->FRP->SetForce(1, quad_joint_torque(7));
+    this->FRK->SetForce(1, quad_joint_torque(8));
+    this->FLR->SetForce(0, quad_joint_torque(9));
+    this->FLP->SetForce(1, quad_joint_torque(10));
+    this->FLK->SetForce(1, quad_joint_torque(11));
+
+    this->rbq3_base_joint->SetForce(0, rbq3_base_torque(0));
+    this->rbq3_base_joint->SetForce(1, rbq3_base_torque(1));
+  }
+
 }

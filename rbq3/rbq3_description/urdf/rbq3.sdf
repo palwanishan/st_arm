@@ -9,8 +9,8 @@
       <axis>
         <xyz>1 0 0</xyz>
         <dynamics>
-          <friction>0</friction>
-          <damping>0</damping>
+          <damping>1</damping>
+          <friction>1</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -27,8 +27,8 @@
           <upper>1e+16</upper>
         </limit>
         <dynamics>
-          <friction>0</friction>
-          <damping>0</damping>
+          <damping>1</damping>
+          <friction>1</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -122,8 +122,8 @@
           <velocity>52.4</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -180,8 +180,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -237,8 +237,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -310,8 +310,8 @@
           <velocity>52.4</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -368,8 +368,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -425,8 +425,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -498,8 +498,8 @@
           <velocity>52.4</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -556,8 +556,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -613,8 +613,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -686,8 +686,8 @@
           <velocity>52.4</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -744,8 +744,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -801,8 +801,8 @@
           <velocity>28.6</velocity>
         </limit>
         <dynamics>
-          <damping>0</damping>
-          <friction>0</friction>
+          <damping>0.2</damping>
+          <friction>0.2</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -861,7 +861,7 @@
       </visual>
     </link>
 
-    
+
 
     <joint name='manipulator_base_joint' type='fixed'>
       <pose relative_to='trunk'>0.15 0 0.05 0 0 0</pose>
@@ -907,6 +907,103 @@
           <ambient>0.0 0.0 0.0 1</ambient>
         </material>
       </visual>
+      <sensor name="IMX219_Front" type="camera">
+        <pose>+0.12 +0 +0 0 0 0</pose>
+        <camera>
+          <horizontal_fov>1.747</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>848</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>60</updateRate>
+          <cameraName>Front</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+        </plugin>
+        <visualize>true</visualize>
+      </sensor>
+      <sensor name="IMX219_Back" type="camera">
+        <pose>-0.12 +0 +0 0 0 3.141592</pose>
+        <camera>
+          <horizontal_fov>1.747</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>848</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>60</updateRate>
+          <cameraName>Back</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+        </plugin>
+        <visualize>true</visualize>
+      </sensor>
+      <sensor name="IMX219_Left" type="camera">
+        <pose>+0 +0.1 +0 0 0 1.570796</pose>
+        <camera>
+          <horizontal_fov>1.747</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>848</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>60</updateRate>
+          <cameraName>Left</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+        </plugin>
+        <visualize>true</visualize>
+      </sensor>
+      <sensor name="IMX219_Right" type="camera">
+        <pose>+0 -0.1 +0 0 0 4.712388</pose>
+        <camera>
+          <horizontal_fov>1.747</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>848</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>60</updateRate>
+          <cameraName>Right</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+        </plugin>
+        <visualize>true</visualize>
+      </sensor>
+      
     </link>
     <joint name='shoulder_yaw_joint' type='revolute'>
       <pose relative_to='manipulator_base_link'>0 0 0 0 -0 0</pose>
@@ -1189,6 +1286,62 @@
           <ambient>0.1 0.1 0.1 1</ambient>
         </material>
       </visual>
+
+      <sensor name="D435" type="depth">
+        <pose>+0.07 +0 +0.05 0 0 0</pose>
+        <camera>
+          <horizontal_fov>1.747</horizontal_fov>
+          <image>
+            <format>B8G8R8</format>
+            <width>848</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>100</far>
+          </clip>
+        </camera>
+        
+        <plugin name="camera_plugin" filename="libgazebo_ros_openni_kinect.so">
+          <baseline>0.2</baseline>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>0.0</updateRate>
+          <cameraName>camera_ir</cameraName>
+          <imageTopicName>/D435_RGB/image_raw</imageTopicName>
+          <cameraInfoTopicName>/camera/color/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>/D435_Depth/image_raw</depthImageTopicName>
+          <depthImageCameraInfoTopicName>/camera/depth/camera_info</depthImageCameraInfoTopicName>
+          <pointCloudTopicName>/camera/depth/points</pointCloudTopicName>
+          <frameName>camera_link</frameName>
+          <pointCloudCutoff>0.2</pointCloudCutoff>
+          <pointCloudCutoffMax>8.0</pointCloudCutoffMax>
+          <min_depth>0.2</min_depth>
+          <max_depth>8.0</max_depth>
+          <distortionK1>0</distortionK1>
+          <distortionK2>0</distortionK2>
+          <distortionK3>0</distortionK3>
+          <distortionT1>0</distortionT1>
+          <distortionT2>0</distortionT2>
+          <CxPrime>0</CxPrime>
+          <Cx>0</Cx>
+          <Cy>0</Cy>
+          <focalLength>0</focalLength>
+          <hackBaseline>0</hackBaseline>
+        </plugin>
+        
+        <!--
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>60</updateRate>
+          <cameraName>D435_depth</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link_optical</frameName>
+        </plugin>
+        -->
+        <visualize>true</visualize>
+      </sensor>
+
     </link>
     <joint name='gripper_left_joint' type='prismatic'>
       <pose relative_to='wrist_yaw_link'>0.083595 0 0 0 -0 0</pose>
