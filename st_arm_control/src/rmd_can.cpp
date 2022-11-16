@@ -14,10 +14,10 @@ rmd_can::rmd_can()
     reference_msg[0].header = 0x89;     reference_msg[0].id = 0x140;
     reference_msg[1].header = 0x89;     reference_msg[1].id = 0x140;
     
-    reference_msg[2].header = 0x77;     reference_msg[2].id = 0x141;
+    reference_msg[2].header = 0x89;     reference_msg[2].id = 0x141;
     reference_msg[3].header = 0x89;     reference_msg[3].id = 0x141;
     
-    reference_msg[4].header = 0x77;     reference_msg[4].id = 0x142;
+    reference_msg[4].header = 0x89;     reference_msg[4].id = 0x142;
     reference_msg[5].header = 0x89;     reference_msg[5].id = 0x142;
     // spi2
     reference_msg[6].header = 0x89;     reference_msg[6].id = 0x142;

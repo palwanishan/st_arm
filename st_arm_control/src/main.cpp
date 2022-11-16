@@ -127,7 +127,6 @@ void *rt_motion_thread(void *arg){
             // motor_ctrl.SetTorque(jm_dynamics.GetTorque());
             // motor_ctrl.EnableFilter();
 
-
             if(comm_loop_count > 500 && is_print_comm_frequency) {
                 comm_loop_count = 1;
                 if(comm_loop_count_time_sec < 120)
@@ -135,9 +134,9 @@ void *rt_motion_thread(void *arg){
                     comm_loop_count_time_sec++;
                     std::cout << "    M1 fbcnt: total: " << _DEV_MC[0].count; std::cout << "  A1: " << _DEV_MC[0].count_A1;
                     std::cout << "    M2 fbcnt: total:" << _DEV_MC[1].count;  std::cout << "  A1: " << _DEV_MC[1].count_A1;
-                    std::cout << "    M3 fbcnt: total:" << _DEV_MC[2].count;  std::cout << "  A1: " << _DEV_MC[2].count_A1;
-                    std::cout << "  92: " << _DEV_MC[2].count_92 << std::endl;
-                    std::cout << "    M3 unknown value:  " << _DEV_MC[2].unknown_value << std::endl;
+                    std::cout << "    M3 fbcnt: total:" << _DEV_MC[2].count;  std::cout << "  A1: " << _DEV_MC[2].count_A1 << std::endl;
+                    // std::cout << "  92: " << _DEV_MC[2].count_92 << std::endl;
+                    // std::cout << "    M3 unknown value:  " << _DEV_MC[2].unknown_value << std::endl;
                     for(uint8_t i=0;i<3;i++)
                     {
                         _DEV_MC[i].count = 0;

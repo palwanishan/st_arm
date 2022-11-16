@@ -7,22 +7,48 @@ Dynamixel::Dynamixel(){
 
   portHandler = dynamixel::PortHandler::getPortHandler(DEVICE_NAME);
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
+  
   if (!portHandler->openPort()) ROS_ERROR("Failed to open the port!");
   if (!portHandler->setBaudRate(BAUDRATE)) ROS_ERROR("Failed to set the baudrate!");
-  for(uint8_t i=0;i<4;i++) packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_OperatingMode, 0, &dxl_error);   // current_mode
+  
+  for(uint8_t i=0; i<4; i++)
+  {
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_OperatingMode, 0, &dxl_error);   // current_mode
+    if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to set torque control mode for Dynamixel ID %d", i);
+  }
+
   // for(uint8_t i=0;i<4;i++) packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_OperatingMode, 3, &dxl_error);   // position_mode
-  for(uint8_t i=0;i<4;i++) dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_TorqueEnable, 1, &dxl_error);
-  for(uint8_t i=0;i<4;i++) packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_LED, 1, &dxl_error);
-  if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to enable torque for Dynamixel ID %d", 3);
+
+  for(uint8_t i=0; i<4; i++)
+  {
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_TorqueEnable, 1, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to enable torque for Dynamixel ID %d", i);
+  } 
+
+  for(uint8_t i=0; i<4; i++)
+  {
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_LED, 1, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to enable LED for Dynamixel ID %d", i);
+  } 
 }
 
 
 Dynamixel::~Dynamixel(){
   uint8_t dxl_error = 0;
   int dxl_comm_result = COMM_TX_FAIL;
-  for(uint8_t i=0;i<4;i++) dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_TorqueEnable, 0, &dxl_error);
-  for(uint8_t i=0;i<4;i++) packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_LED, 0, &dxl_error);
-  if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to disable torque for Dynamixel ID %d", 1);
+
+  for(uint8_t i=0; i<4; i++)
+  {
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_TorqueEnable, 0, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to disable torque for Dynamixel ID %d", i);
+  } 
+
+  for(uint8_t i=0; i<4; i++)
+  {
+    packetHandler->write1ByteTxRx(portHandler, dx_id[i], kRegStandard_LED, 0, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) ROS_ERROR("Failed to disable LED for Dynamixel ID %d", i);
+  } 
+  
   portHandler->closePort();
 }
 
@@ -79,8 +105,7 @@ void Dynamixel::SetTorqueRef(VectorXd a_torque){
   // ref_torque_[3] = 0;
 }
 
-// effort to current  / 1.78e-03    // current to value  / 2.69f    
-// {XM430-W350} => 500 = 1.345[A] = 2.3[Nm] => 217 = 1[Nm]
+
 void Dynamixel::syncWriteTorque()
 {
   dynamixel::GroupSyncWrite groupSyncWrite(portHandler, packetHandler, kRegStandard_GoalCurrent, 2);
@@ -103,11 +128,17 @@ void Dynamixel::syncWriteTorque()
 }
 
 
+// {XM430-W350} => effort to current  / 1.78*i-?    // current to value  / 2.69f
+// {XM430-W350} => 500 = 1.345[A] = 2.3941[Nm] => 208.85 = 1[Nm]
+
+// {XM430-W210} => if effort to current = 1.3*i      => 500 = 1.345[A] = 1.7485 Nm => 1[Nm] = 285
+// {XM430-W210} => if effort to current = 1.3*i-0.32 => 500 = 1.345[A] = 1.4285 Nm => 1[Nm] = 350
 int32_t Dynamixel::torqueToValue(double torque)
 {
-  int32_t value_ = int(torque * 208.427);
-  if(value_ > 1) value_ += 10;
-  else if(value_ < -1) value_ -= 10;
+  int32_t value_ = int(torque * 285);     // XM430-W210
+  // int32_t value_ = int(torque * 208.427);  // XM430-W350
+  // if(value_ > 1) value_ += 10;       // friction compensation
+  // else if(value_ < -1) value_ -= 10;
   return value_;
 }
 
