@@ -136,12 +136,15 @@ namespace gazebo
     
     Vector3d rbq3_base_imu_rpy, rbq3_base_rpy, rbq3_base_rpy_ref, rbq3_base_rpy_dot, rbq3_base_torque;
 
-    const std::vector<std::string> jnt_names{"HRR", "HRP", "HRK", "HLR", "HLP", "HLK", "FRR", "FRP", "FRK", "FLR", "FLP", "FLK"};
+    const std::vector<std::string> rbq3_joint_names = {"HRR", "HRP", "HRK", "HLR", "HLP", "HLK", "FRR", "FRP", "FRK", "FLR", "FLP", "FLK"};
 
     VectorXd quad_th = VectorXd::Zero(12);
     VectorXd quad_th_dot = VectorXd::Zero(12);
     VectorXd quad_joint_torque = VectorXd::Zero(12);
     VectorXd quad_th_ref = VectorXd::Zero(12);
+
+    ros::Publisher pub_rbq3_joint_state;
+
 
 
     const std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint_g_l", "joint_g_r"};

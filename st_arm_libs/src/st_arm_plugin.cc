@@ -78,6 +78,8 @@ namespace gazebo
     pub_ref_ee_pose = node_handle.advertise<geometry_msgs::TransformStamped>("st_arm/ref_ee_pose", 10);
     //pub_gazebo_camera = node_handle.advertise<sensor_msgs::Image>("st_arm/gazebocamera", 60);  //++
 //    sub_gripper_activation = node_handle.subscribe("unity/gripper_activation", 1, &gazebo::STArmPlugin::GripperActivationCallback, this);  //++
+  
+    pub_rbq3_joint_state = node_handle.advertise<sensor_msgs::JointState>("rbq3/joint_states", 200);
   }
 
 
@@ -276,6 +278,18 @@ namespace gazebo
     tf_msg.transform.rotation.w = ref_ee_quaternion.w();
 
     pub_ref_ee_pose.publish(tf_msg); 
+
+    sensor_msgs::JointState rbq3_joint_state_msg;
+    
+    joint_state_msg.header.stamp = ros::Time::now();
+    for (uint8_t i=0; i<12; i++)
+    {
+      rbq3_joint_state_msg.name.push_back((std::string)rbq3_joint_names.at(i));
+      rbq3_joint_state_msg.position.push_back((float)(quad_th[i]));
+      rbq3_joint_state_msg.velocity.push_back((float)(quad_th_dot[i]));
+      rbq3_joint_state_msg.effort.push_back((float)quad_joint_torque[i]);
+    }
+    pub_rbq3_joint_state.publish(rbq3_joint_state_msg); 
   }
 
 
@@ -1048,8 +1062,8 @@ namespace gazebo
     amplitude << 1, 1, 1;
     horizontal_translation << 0, 1, 0;
     vertical_translation << 0, 0, 0;
-    // rbq3_base_range_of_motion << 20, 20, 20;
-    rbq3_base_range_of_motion << 0, 0, 0;
+    rbq3_base_range_of_motion << 20, 20, 20;
+    // rbq3_base_range_of_motion << 0, 0, 0;
 
     for(uint8_t i=0; i<3; i++)
     {
@@ -1062,11 +1076,16 @@ namespace gazebo
 
     rbq3_base_torque = rbq_base_gain_p * (rbq3_base_rpy_ref - rbq3_base_rpy) - rbq_base_gain_d * rbq3_base_rpy_dot;
 
-    float quad_js_p = 10;
+    float quad_js_p = 100;
     float quad_js_d = 0;
+
+    quad_th_ref << 0, 60, -90,
+                   0, 60, -90,
+                   0, 60, -90,
+                   0, 60, -90;
     for(uint8_t i=0; i<12; i++)
     {
-      quad_joint_torque[i] = quad_js_p * (quad_th_ref[i] - quad_th[i]) - quad_js_d * quad_th_dot[i];
+      quad_joint_torque[i] = quad_js_p * (quad_th_ref[i] * DEG2RAD - quad_th[i]) - quad_js_d * quad_th_dot[i];
     }
   }
 
