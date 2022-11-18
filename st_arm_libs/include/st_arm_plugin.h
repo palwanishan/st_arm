@@ -333,8 +333,10 @@ namespace gazebo
     void SetRBQ3JointTorque();
     
     void GripperControl();
-    // void HMDTFCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
-    // void GripperActivationCallback(const std_msgs::Bool &msg);     //++
+
+    void SolveInverseKinematics();
+    void SolveForwardKinematics();
+  
   };
   GZ_REGISTER_MODEL_PLUGIN(STArmPlugin);
 }

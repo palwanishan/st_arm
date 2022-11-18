@@ -1174,4 +1174,15 @@ namespace gazebo
     this->rbq3_base_joint->SetForce(1, rbq3_base_torque(1));
   }
 
+
+  void STArmPlugin::SolveForwardKinematics()
+  {
+
+  }
+
+
+  void STArmPlugin::SolveInverseKinematics()
+  {
+    
+  }
 }
