@@ -513,7 +513,8 @@ namespace gazebo
 
     cnt++;
 
-    InverseSolverUsingSRJacobian(ref_ee_position, ref_ee_rotation);
+    // InverseSolverUsingSRJacobian(ref_ee_position, ref_ee_rotation);
+    IK(ref_ee_position, ref_ee_rotation);
   }
 
   //	RBDL
@@ -1272,6 +1273,64 @@ namespace gazebo
   }
 
 
+
+  bool STArmPlugin::IK(Vector3d a_target_position, Matrix3d a_target_orientation)
+  {
+    int it = 0;
+    int max_it = 10;
+    float tolerance = 0.1;
+    float alpha = 0.1;
+    float best_norm;
+    VectorXd pose_difference = VectorXd::Zero(6);
+    VectorXd l_q = VectorXd::Zero(6);
+    VectorXd l_best_q = VectorXd::Zero(6);
+    VectorXd l_delta_q = VectorXd::Zero(6);
+    MatrixXd l_Jacobian = MatrixXd::Zero(6, 6);
+    MatrixXd l_Jacobian_inverse = MatrixXd::Zero(6, 6);
+    Matrix4d l_current_pose;
+
+
+    // while ((it == 0 || pose_difference.norm() > tolerance) && it < max_it)
+    while ((it == 0 || 1 > tolerance) && it < max_it)
+    {
+      // GetJacobians(l_q, l_Jacobian, l_current_pose);
+
+      // l_Jacobian_inverse = getDampedPseudoInverse(l_Jacobian, 0);
+
+      pose_difference = PoseDifference(a_target_position, a_target_orientation, l_current_pose);
+
+      // l_delta_q = alpha * l_Jacobian_inverse * pose_difference;
+
+      // for(uint8_t i=0; i<6; i++)
+      // {
+      //   l_q[i] = l_q[i] + l_delta_q[i];
+      // }
+
+      // if(it == 0 || pose_difference.norm() < best_norm)
+      // {
+      //   l_best_q = l_q;
+      //   best_norm = pose_difference.norm();
+      // }
+      it++;
+    }
+    for(uint8_t i=0; i<6; i++)
+    {
+      ik_th[i] = l_best_q[i];
+    }
+
+    if(it < max_it)
+    {
+      std::cout << "Did converge, iteration number: " << it << "    pose difference normalized: " << pose_difference.norm() << std::endl;
+      return true;
+    } 
+
+    std::cout << "Did not converge, iteration number: " << it << "    pose difference normalized: " << (float)pose_difference.norm() << std::endl;
+
+    return false;
+  }
+
+
+
   VectorXd STArmPlugin::PoseDifference(Vector3d a_desired_position, Matrix3d a_desired_orientation, Matrix4d a_present_pose)
   {
     Vector3d l_present_position;
@@ -1354,7 +1413,7 @@ namespace gazebo
   }
 
 
-  MatrixXd STArmPlugin::getDampedPseudoInverse(MatrixXd Jacobian, VectorXd lamda)
+  MatrixXd STArmPlugin::getDampedPseudoInverse(MatrixXd Jacobian, float lamda)
   {
     MatrixXd a_Jacobian_Transpose = MatrixXd::Zero(6,6);
     MatrixXd a_damped_psudo_inverse_Jacobian = MatrixXd::Zero(6,6);

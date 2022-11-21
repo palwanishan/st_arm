@@ -339,6 +339,7 @@ namespace gazebo
     void GripperControl();
 
     bool InverseSolverUsingSRJacobian(Vector3d target_position, Matrix3d target_orientation);
+    bool IK(Vector3d target_position, Matrix3d target_orientation);
 
     void GetJacobians(VectorXd a_th, MatrixXd Jacobian, Matrix4d Current_Pose);
 
@@ -346,7 +347,7 @@ namespace gazebo
     Vector3d OrientationDifference(Matrix3d desired_orientation, Matrix3d present_orientation);
     Vector3d MatrixLogarithm(Matrix3d rotation_matrix);
     Matrix3d skewSymmetricMatrix(Vector3d v);
-    MatrixXd getDampedPseudoInverse(MatrixXd Jacobian, VectorXd lamda);
+    MatrixXd getDampedPseudoInverse(MatrixXd Jacobian, float lamda);
     VectorXd PoseDifference(Vector3d desired_position, Matrix3d desired_orientation, Matrix4d present_pose);
 
 
