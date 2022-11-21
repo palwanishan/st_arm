@@ -62,6 +62,7 @@ namespace gazebo
   {
     pub_joint_state = node_handle.advertise<sensor_msgs::JointState>("st_arm/joint_states", 100);
     pub_joint_state_deg = node_handle.advertise<sensor_msgs::JointState>("st_arm/joint_states_deg", 100);
+    pub_joint_state_ik = node_handle.advertise<sensor_msgs::JointState>("st_arm/joint_states_ik", 100);
     sub_mode_selector = node_handle.subscribe("st_arm/mode_selector", 10, &gazebo::STArmPlugin::SwitchMode, this); 
     sub_gain_p_task_space = node_handle.subscribe("st_arm/TS_Kp", 10, &gazebo::STArmPlugin::SwitchGainTaskSpaceP, this); 
     sub_gain_w_task_space = node_handle.subscribe("st_arm/TS_Kw", 10, &gazebo::STArmPlugin::SwitchGainTaskSpaceW, this); 
@@ -253,8 +254,16 @@ namespace gazebo
     }
     pub_joint_state_deg.publish(joint_state_msg); 
 
-    geometry_msgs::TransformStamped tf_msg;
+    sensor_msgs::JointState msg;
+    msg.header.stamp = ros::Time::now();
+    for (uint8_t i=0; i<6; i++)
+    {
+      msg.name.push_back((std::string)joint_names.at(i));
+      msg.position.push_back((float)(ik_th[i]));
+    }
+    pub_joint_state_ik.publish(msg); 
 
+    geometry_msgs::TransformStamped tf_msg;
     tf_msg.header.stamp = ros::Time::now();
     ee_quaternion = ee_rotation;
     tf_msg.transform.translation.x = ee_position(0);
@@ -503,6 +512,8 @@ namespace gazebo
     }
 
     cnt++;
+
+    InverseSolverUsingSRJacobian(ref_ee_position, ref_ee_rotation);
   }
 
   //	RBDL
@@ -1062,7 +1073,7 @@ namespace gazebo
     amplitude << 1, 1, 1;
     horizontal_translation << 0, 1, 0;
     vertical_translation << 0, 0, 0;
-    rbq3_base_range_of_motion << 20, 20, 20;
+    rbq3_base_range_of_motion << 5, 5, 5;
     // rbq3_base_range_of_motion << 0, 0, 0;
 
     for(uint8_t i=0; i<3; i++)
@@ -1175,14 +1186,365 @@ namespace gazebo
   }
 
 
-  void STArmPlugin::SolveForwardKinematics()
+  bool STArmPlugin::InverseSolverUsingSRJacobian(Vector3d a_target_position, Matrix3d a_target_orientation)
   {
+    VectorXd l_q = VectorXd::Zero(6);
+    VectorXd l_delta_q = VectorXd::Zero(6);
 
-  }
+    for(uint8_t i=0; i<6; i++)
+    {
+      l_q[i] = th[i];
+    }
 
+    Matrix4d l_current_pose;
 
-  void STArmPlugin::SolveInverseKinematics()
-  {
+    MatrixXd l_jacobian = MatrixXd::Identity(6, 6);
+
+    //solver parameter
+    double lambda = 0.0;
+    const double param = 0.002;
+    const int8_t iteration = 10;
+
+    const double gamma = 0.5;             //rollback delta
+
+    //sr sovler parameter
+    double wn_pos = 1 / 0.3;
+    double wn_ang = 1 / (2 * M_PI);
+    double pre_Ek = 0.0;
+    double new_Ek = 0.0;
+
+    MatrixXd We(6, 6);
+    We << wn_pos, 0, 0, 0, 0, 0,
+        0, wn_pos, 0, 0, 0, 0,
+        0, 0, wn_pos, 0, 0, 0,
+        0, 0, 0, wn_ang, 0, 0,
+        0, 0, 0, 0, wn_ang, 0,
+        0, 0, 0, 0, 0, wn_ang;
+
+    MatrixXd Wn = MatrixXd::Identity(6,6);
+
+    MatrixXd sr_jacobian = MatrixXd::Identity(6, 6);
+
+    //delta parameter
+    VectorXd pose_difference = VectorXd::Zero(6);
+    VectorXd gerr(6);
+
+    GetJacobians(l_q, l_jacobian, l_current_pose);
     
+    pose_difference = PoseDifference(a_target_position, a_target_orientation, l_current_pose);
+    pre_Ek = pose_difference.transpose() * We * pose_difference;
+
+    for (int8_t count = 0; count < iteration; count++)
+    {
+      GetJacobians(l_q, l_jacobian, l_current_pose);
+
+      pose_difference = PoseDifference(a_target_position, a_target_orientation, l_current_pose);
+      
+      new_Ek = pose_difference.transpose() * We * pose_difference;
+      
+      lambda = pre_Ek + param;
+      
+      sr_jacobian = (l_jacobian.transpose() * We * l_jacobian) + (lambda * Wn);     //calculate sr_jacobian (J^T*we*J + lamda*Wn)
+      gerr = l_jacobian.transpose() * We * pose_difference;                         //calculate gerr (J^T*we) dx
+      Eigen::ColPivHouseholderQR<MatrixXd> dec(sr_jacobian);                        //solving (get dq)
+      l_delta_q = dec.solve(gerr);                                                  //(J^T*we) * dx = (J^T*we*J + lamda*Wn) * dq
+
+      l_q = l_q + l_delta_q;
+
+      if (new_Ek < 1E-12)
+      {
+        std::cout << "Solved IK" << std::endl;
+        ik_th = l_q;
+        return true;
+      }
+      else if (new_Ek < pre_Ek)
+      {
+        pre_Ek = new_Ek;
+      }
+      else
+      {
+        l_q = l_q - gamma * l_delta_q;
+      }
+    }
+    ik_th = l_q;
+    // std::cout << "Solved IK" << std::endl;
+    return false;
   }
+
+
+  VectorXd STArmPlugin::PoseDifference(Vector3d a_desired_position, Matrix3d a_desired_orientation, Matrix4d a_present_pose)
+  {
+    Vector3d l_present_position;
+    Matrix3d l_present_orientation;
+    Vector3d l_position_difference, l_orientation_difference;
+    VectorXd l_pose_difference(6);
+
+    l_present_position << a_present_pose(0,3), a_present_pose(1,3), a_present_pose(2,3);
+    l_present_orientation = a_present_pose.block<3,3>(0,0);
+
+    l_position_difference = PositionDifference(a_desired_position, l_present_position);
+    l_orientation_difference = OrientationDifference(a_desired_orientation, l_present_orientation);
+    l_pose_difference << l_position_difference(0), l_position_difference(1), l_position_difference(2),
+                        l_orientation_difference(0), l_orientation_difference(1), l_orientation_difference(2);
+
+    return l_pose_difference;
+  }
+
+
+  Vector3d STArmPlugin::PositionDifference(Vector3d desired_position, Vector3d present_position)
+  {
+    Vector3d position_difference;
+    position_difference = desired_position - present_position;
+
+    return position_difference;
+  }
+
+
+  Vector3d STArmPlugin::OrientationDifference(Matrix3d desired_orientation, Matrix3d present_orientation)
+  {
+    Vector3d orientation_difference;
+    orientation_difference = present_orientation * MatrixLogarithm(present_orientation.transpose() * desired_orientation);
+
+    return orientation_difference;
+  }
+
+
+  Vector3d STArmPlugin::MatrixLogarithm(Matrix3d rotation_matrix)
+  {
+    Matrix3d R = rotation_matrix;
+    Vector3d l = Vector3d::Zero();
+    Vector3d rotation_vector = Vector3d::Zero();
+
+    double theta = 0.0;
+    // double diag = 0.0;
+    bool diagonal_matrix = R.isDiagonal();
+
+    l << R(2, 1) - R(1, 2),
+        R(0, 2) - R(2, 0),
+        R(1, 0) - R(0, 1);
+    theta = atan2(l.norm(), R(0, 0) + R(1, 1) + R(2, 2) - 1);
+    // diag = R.determinant();
+
+    if (R.isIdentity())
+    {
+      rotation_vector.setZero(3);
+      return rotation_vector;
+    }
+    
+    if (diagonal_matrix == true)
+    {
+      rotation_vector << R(0, 0) + 1, R(1, 1) + 1, R(2, 2) + 1;
+      rotation_vector = rotation_vector * M_PI_2;
+    }
+    else
+    {
+      rotation_vector = theta * (l / l.norm());
+    }
+    return rotation_vector;
+  }
+
+
+  Matrix3d STArmPlugin::skewSymmetricMatrix(Vector3d v)
+  {
+    Matrix3d skew_symmetric_matrix = Matrix3d::Zero();
+    skew_symmetric_matrix << 0,     -v(2),      v(1),
+                             v(2),      0,     -v(0),
+                            -v(1),   v(0),         0;
+    return skew_symmetric_matrix;
+  }
+
+
+  MatrixXd STArmPlugin::getDampedPseudoInverse(MatrixXd Jacobian, VectorXd lamda)
+  {
+    MatrixXd a_Jacobian_Transpose = MatrixXd::Zero(6,6);
+    MatrixXd a_damped_psudo_inverse_Jacobian = MatrixXd::Zero(6,6);
+
+    a_Jacobian_Transpose = Jacobian.transpose();
+
+    a_damped_psudo_inverse_Jacobian = (a_Jacobian_Transpose * Jacobian + lamda * lamda * MatrixXd::Identity(6,6)).inverse() * a_Jacobian_Transpose;
+
+    return a_damped_psudo_inverse_Jacobian;
+  }
+
+  // a argument   // m member    // l local   //p pointer     //r reference   //
+  void STArmPlugin::GetJacobians(VectorXd a_th, MatrixXd a_Jacobian, Matrix4d a_Current_Pose)
+  {
+    Matrix4d l_HT0, l_HT1, l_HT2, l_HT3, l_HT4, l_HT5, l_HT6;
+    Matrix4d l_T00, l_T01, l_T02, l_T03, l_T04, l_T05, l_T06;
+    Vector3d l_a0, l_a1, l_a2, l_a3, l_a4, l_a5;
+    Vector3d l_P6_P0, l_P6_P1, l_P6_P2, l_P6_P3, l_P6_P4, l_P6_P5;
+    VectorXd l_J1(6), l_J2(6), l_J3(6), l_J4(6), l_J5(6), l_J6(6); 
+
+    l_HT0 << 1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1;
+    l_HT1 << cos(a_th[0]), 0, -sin(a_th[0]), 0,
+          sin(a_th[0]), 0, cos(a_th[0]), 0,
+          0, -1, 0, L1,
+          0, 0, 0, 1;
+    l_HT2 << cos(a_th[1]), -sin(a_th[1]), 0, L2*cos(a_th[1]),
+          sin(a_th[1]), cos(a_th[1]), 0, L2*sin(a_th[1]),
+          0, 0, 1, 0, 
+          0, 0, 0, 1;
+    l_HT3 << cos(a_th[2]), -sin(a_th[2]), 0, L3*cos(a_th[2]), 
+          sin(a_th[2]), cos(a_th[2]), 0, L3*sin(a_th[2]), 
+          0, 0, 1, 0,
+          0, 0, 0, 1;
+    l_HT4 << sin(a_th[3]), 0, cos(a_th[3]), 0,
+          -cos(a_th[3]), 0, sin(a_th[3]), 0,
+          0, -1, 0, 0,
+          0, 0, 0, 1;
+    l_HT5 << -sin(a_th[4]), 0, cos(a_th[4]), 0,
+          cos(a_th[4]), 0, sin(a_th[4]), 0,
+          0, 1, 0, L5,
+          0, 0, 0, 1;
+    l_HT6 << -sin(a_th[5]), -cos(a_th[5]), 0, -L6*sin(a_th[5]),
+          cos(a_th[5]), -sin(a_th[5]), 0, L6*cos(a_th[5]),
+          0, 0, 1, 0, 
+          0, 0, 0, 1;
+
+    l_T00 = l_HT0;
+    l_T01 = l_T00 * l_HT1;
+    l_T02 = l_T01 * l_HT2;
+    l_T03 = l_T02 * l_HT3;
+    l_T04 = l_T03 * l_HT4;
+    l_T05 = l_T04 * l_HT5;
+    l_T06 = l_T05 * l_HT6;
+
+
+    l_a0 << l_T00(0,2), l_T00(1,2), l_T00(2,2);
+    l_a1 << l_T01(0,2), l_T01(1,2), l_T01(2,2);
+    l_a2 << l_T02(0,2), l_T02(1,2), l_T02(2,2);
+    l_a3 << l_T03(0,2), l_T03(1,2), l_T03(2,2);
+    l_a4 << l_T04(0,2), l_T04(1,2), l_T04(2,2);
+    l_a5 << l_T05(0,2), l_T05(1,2), l_T05(2,2);
+
+    l_P6_P0 << l_T06(0,3) - l_T00(0,3), l_T06(1,3) - l_T00(1,3), l_T06(2,3) - l_T00(2,3);
+    l_P6_P1 << l_T06(0,3) - l_T01(0,3), l_T06(1,3) - l_T01(1,3), l_T06(2,3) - l_T01(2,3);
+    l_P6_P2 << l_T06(0,3) - l_T02(0,3), l_T06(1,3) - l_T02(1,3), l_T06(2,3) - l_T02(2,3);
+    l_P6_P3 << l_T06(0,3) - l_T03(0,3), l_T06(1,3) - l_T03(1,3), l_T06(2,3) - l_T03(2,3);
+    l_P6_P4 << l_T06(0,3) - l_T04(0,3), l_T06(1,3) - l_T04(1,3), l_T06(2,3) - l_T04(2,3);
+    l_P6_P5 << l_T06(0,3) - l_T05(0,3), l_T06(1,3) - l_T05(1,3), l_T06(2,3) - l_T05(2,3);
+
+    l_J1 << l_a0.cross(l_P6_P0), l_a0;
+    l_J2 << l_a1.cross(l_P6_P1), l_a1;
+    l_J3 << l_a2.cross(l_P6_P2), l_a2;
+    l_J4 << l_a3.cross(l_P6_P3), l_a3;
+    l_J5 << l_a4.cross(l_P6_P4), l_a4;
+    l_J6 << l_a5.cross(l_P6_P5), l_a5;
+
+    a_Jacobian << l_J1, l_J2, l_J3, l_J4, l_J5, l_J6;
+
+    a_Current_Pose = l_T06;
+  }
+
+
+  // MatrixXd STArmPlugin::jacobian()
+  // {
+  //   MatrixXd jacobian = MatrixXd::Identity(6, 6);
+  //   Vector3d joint_axis = Vector3d::Zero(3);
+  //   Vector3d position_changed = Vector3d::Zero(3);
+  //   Vector3d orientation_changed = Vector3d::Zero(3);
+  //   VectorXd pose_changed = VectorXd::Zero(6);
+  //   //////////////////////////////////////////////////////////////////////////////////
+  //   int8_t index = 0;
+  //   Name my_name =  manipulator->getWorldChildName();
+  //   for (int8_t size = 0; size < 6; size++)
+  //   {
+  //     position_changed = skewSymmetricMatrix(joint_axis) *
+  //                       (manipulator->getComponentPositionFromWorld(tool_name) - manipulator->getComponentPositionFromWorld(my_name));
+  //     orientation_changed = joint_axis;
+  //     pose_changed << position_changed(0),
+  //         position_changed(1),
+  //         position_changed(2),
+  //         orientation_changed(0),
+  //         orientation_changed(1),
+  //         orientation_changed(2);
+  //     jacobian.col(index) = pose_changed;
+  //     index++;
+  //     my_name = manipulator->getComponentChildName(my_name).at(0); // Get Child name which has active joint
+  //   }
+  //   return jacobian;
+  // }
+  // /// <summary>
+  // // Takes the current q vector as an input and 
+  // //  returns the geometric Position Jacobian J_P, the geometric Rotation Jacobian J_R, 
+  // //  the current task-space position r_IE and the current task-space end-effector rotatoin matrix
+  // /// </summary>
+  // void GetJacobians(float[] q, out Matrix J_P, out Matrix J_R, out Vector I_r_IE_current, out RotationMatrix Rot_M_EE)
+  // {
+  //     List<Matrix4x4> T_I_k = GetFK(q);
+  //     List<RotationMatrix> Rotation_Ms = new List<RotationMatrix>();
+  //     List<Vector> position_Vs = new List<Vector>();
+  //     foreach (var T in T_I_k)
+  //     {
+  //         Rotation_Ms.Add(T.GetRotation());
+  //         position_Vs.Add(new Vector(T[0, 3], T[1, 3], T[2, 3]));
+  //     }
+  //     Matrix4x4 HT_EE = T_I_k.Last();
+  //     Rot_M_EE = HT_EE.GetRotation();
+  //     Vector pos_V_EE = new Vector(HT_EE[0, 3], HT_EE[1, 3], HT_EE[2, 3]);
+  //     List<double[]> j = new List<double[]>();
+  //     for (int i = 0; i < 6; i++)
+  //     {
+  //         j.Add(Vector.Cross(Rotation_Ms[i] * vectorZ, pos_V_EE - position_Vs[i]).ToArray());                
+  //     }
+  //     J_P = new Matrix(j.ToArray());
+  //     j = new List<double[]>();
+  //     for (int i = 0; i < 6; i++)
+  //     {
+  //         j.Add((Rotation_Ms[i] * vectorZ).ToArray());
+  //     }
+  //     J_R = new Matrix(j.ToArray());
+  //     I_r_IE_current = pos_V_EE;
+  // }
+  // VectorXd STArmPlugin::SolveForwardKinematics(VectorXd a_th)
+  // {
+  //   MatrixXd HT0, HT1, HT2, HT3, HT4, HT5, HT6;
+  //   MatrixXd a_T00, a_T01, a_T02, a_T03, a_T04, a_T05, a_T06;
+  //   VectorXd a_ee_pose;
+  //   HT0 << 1, 0, 0, 0,
+  //         0, 1, 0, 0,
+  //         0, 0, 1, 0,
+  //         0, 0, 0, 1;
+  //   HT1 << cos(a_th[0]), 0, -sin(a_th[0]), 0,
+  //         sin(a_th[0]), 0, cos(a_th[0]), 0,
+  //         0, -1, 0, L1,
+  //         0, 0, 0, 1;
+  //   HT2 << cos(a_th[1]), -sin(a_th[1]), 0, L2*cos(a_th[1]),
+  //         sin(a_th[1]), cos(a_th[1]), 0, L2*sin(a_th[1]),
+  //         0, 0, 1, 0, 
+  //         0, 0, 0, 1;
+  //   HT3 << cos(a_th[2]), -sin(a_th[2]), 0, L3*cos(a_th[2]), 
+  //         sin(a_th[2]), cos(a_th[2]), 0, L3*sin(a_th[2]), 
+  //         0, 0, 1, 0,
+  //         0, 0, 0, 1;
+  //   HT4 << sin(a_th[3]), 0, cos(a_th[3]), 0,
+  //         -cos(a_th[3]), 0, sin(a_th[3]), 0,
+  //         0, -1, 0, 0,
+  //         0, 0, 0, 1;
+  //   HT5 << -sin(a_th[4]), 0, cos(a_th[4]), 0,
+  //         cos(a_th[4]), 0, sin(a_th[4]), 0,
+  //         0, 1, 0, L5,
+  //         0, 0, 0, 1;
+  //   HT6 << -sin(a_th[5]), -cos(a_th[5]), 0, -L6*sin(a_th[5]),
+  //         cos(a_th[5]), -sin(a_th[5]), 0, L6*cos(a_th[5]),
+  //         0, 0, 1, 0, 
+  //         0, 0, 0, 1;
+  //   a_T00 = HT0;
+  //   a_T01 = a_T00*HT1;
+  //   a_T02 = a_T01*HT2;
+  //   a_T03 = a_T02*HT3;
+  //   a_T04 = a_T03*HT4;
+  //   a_T05 = a_T04*HT5;
+  //   a_T06 = a_T05*HT6;
+  //   a_ee_pose << a_T06(0,3), a_T06(1,3), a_T06(2,3), 0, 0, 0;
+  //   return a_ee_pose;
+  //   // ee_rotation = a_T06.block<3,3>(0,0);
+  // }
+  // void STArmPlugin::SolveInverseKinematics()
+  // {
+  // }
+
 }

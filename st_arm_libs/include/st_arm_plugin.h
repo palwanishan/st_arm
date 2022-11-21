@@ -45,6 +45,7 @@ using Eigen::Quaterniond;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
+using Eigen::Matrix4d;
 
 namespace RBDL = RigidBodyDynamics;
 namespace RBDLMath = RigidBodyDynamics::Math;
@@ -237,6 +238,8 @@ namespace gazebo
     VectorXd last_th_dot = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
     VectorXd th_d_dot = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
     VectorXd init_position = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
+
+    VectorXd ik_th = VectorXd::Zero(6);
     
     MatrixXd A0 = MatrixXd::Zero(4,4);  MatrixXd A1 = MatrixXd::Zero(4,4); MatrixXd A2 = MatrixXd::Zero(4,4); 
     MatrixXd A3 = MatrixXd::Zero(4,4);
@@ -264,6 +267,7 @@ namespace gazebo
     ros::NodeHandle node_handle;
     ros::Publisher pub_joint_state;
     ros::Publisher pub_joint_state_deg;
+    ros::Publisher pub_joint_state_ik;
     ros::Publisher pub_ee_pose;
     ros::Publisher pub_ref_ee_pose;
     ros::Publisher pub_base_imu_pose;
@@ -334,9 +338,23 @@ namespace gazebo
     
     void GripperControl();
 
-    void SolveInverseKinematics();
-    void SolveForwardKinematics();
-  
+    bool InverseSolverUsingSRJacobian(Vector3d target_position, Matrix3d target_orientation);
+
+    void GetJacobians(VectorXd a_th, MatrixXd Jacobian, Matrix4d Current_Pose);
+
+    Vector3d PositionDifference(Vector3d desired_position, Vector3d present_position);
+    Vector3d OrientationDifference(Matrix3d desired_orientation, Matrix3d present_orientation);
+    Vector3d MatrixLogarithm(Matrix3d rotation_matrix);
+    Matrix3d skewSymmetricMatrix(Vector3d v);
+    MatrixXd getDampedPseudoInverse(MatrixXd Jacobian, VectorXd lamda);
+    VectorXd PoseDifference(Vector3d desired_position, Matrix3d desired_orientation, Matrix4d present_pose);
+
+
+    // void SolveInverseKinematics();
+    // VectorXd SolveForwardKinematics(VectorXd a_th);
+    // VectorXd poseDifference(Vector3d desired_position, Vector3d present_position,
+    //                             Matrix3d desired_orientation, Matrix3d present_orientation);
+    // MatrixXd jacobian();
   };
   GZ_REGISTER_MODEL_PLUGIN(STArmPlugin);
 }
