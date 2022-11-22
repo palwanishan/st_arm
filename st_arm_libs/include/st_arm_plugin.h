@@ -47,6 +47,16 @@ using Eigen::MatrixXd;
 using Eigen::Matrix3d;
 using Eigen::Matrix4d;
 
+using Eigen::Vector3f;
+using Eigen::Quaternionf;
+using Eigen::VectorXf;
+using Eigen::MatrixXf;
+using Eigen::Matrix3f;
+using Eigen::Matrix4f;
+
+using std::atan2;
+using std::sqrt;
+
 namespace RBDL = RigidBodyDynamics;
 namespace RBDLMath = RigidBodyDynamics::Math;
 
@@ -158,6 +168,12 @@ namespace gazebo
     double trajectory;
 
 
+    //*************** IK Variables**************//
+    MatrixXd JacobianForIK = MatrixXd::Zero(6,6);
+
+    Matrix3d fk_current_orientation;
+    Vector3d fk_current_position;
+
     //*************** Trajectory Variables**************//
     double step_time{0};
     double cnt_time{0};
@@ -202,7 +218,7 @@ namespace gazebo
     VectorXd J5 = VectorXd::Zero(6); 
     VectorXd J6 = VectorXd::Zero(6);
 
-    MatrixXd Jacobian = MatrixXd::Zero(6,6); 
+    MatrixXd Jacobian = MatrixXd::Zero(6,6);
     MatrixXd J_CoM = MatrixXd::Zero(3,6);
 
     Vector3d  ee_position, 
@@ -240,6 +256,7 @@ namespace gazebo
     VectorXd init_position = VectorXd::Zero(NUM_OF_JOINTS_WITH_TOOL);
 
     VectorXd ik_th = VectorXd::Zero(6);
+    VectorXd ik_current_pose = VectorXd::Zero(6);
     
     MatrixXd A0 = MatrixXd::Zero(4,4);  MatrixXd A1 = MatrixXd::Zero(4,4); MatrixXd A2 = MatrixXd::Zero(4,4); 
     MatrixXd A3 = MatrixXd::Zero(4,4);
@@ -331,17 +348,24 @@ namespace gazebo
     void HMDPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
 
     void RBQ3Motion1();
+    void RBQ3Motion2();
     void GetRBQ3Joints();
     void GetRBQ3JointPosition();
     void GetRBQ3JointVelocity();
     void SetRBQ3JointTorque();
+    Vector3d GetRBQ3RightIK(Vector3d position);
+    Vector3d GetRBQ3LeftIK(Vector3d position);
     
     void GripperControl();
-
+  
+    bool InverseSolverUsingJacobian(Vector3d a_target_position, Matrix3d a_target_orientation);
     bool InverseSolverUsingSRJacobian(Vector3d target_position, Matrix3d target_orientation);
     bool IK(Vector3d target_position, Matrix3d target_orientation);
 
     void GetJacobians(VectorXd a_th, MatrixXd Jacobian, Matrix4d Current_Pose);
+    void GetJacobians(VectorXd a_th, MatrixXd Jacobian, Vector3d current_position, Matrix3d current_orientation);
+
+    void UpdateJacobian(VectorXd a_th);
 
     Vector3d PositionDifference(Vector3d desired_position, Vector3d present_position);
     Vector3d OrientationDifference(Matrix3d desired_orientation, Matrix3d present_orientation);
@@ -349,6 +373,7 @@ namespace gazebo
     Matrix3d skewSymmetricMatrix(Vector3d v);
     MatrixXd getDampedPseudoInverse(MatrixXd Jacobian, float lamda);
     VectorXd PoseDifference(Vector3d desired_position, Matrix3d desired_orientation, Matrix4d present_pose);
+    VectorXd PoseDifference(Vector3d desired_position, Matrix3d desired_orientation, Vector3d present_position, Matrix3d present_orientation);
 
 
     // void SolveInverseKinematics();

@@ -181,7 +181,7 @@ namespace gazebo
     {
       GetRBQ3JointPosition();
       GetRBQ3JointVelocity();
-      RBQ3Motion1();
+      RBQ3Motion2();
       SetRBQ3JointTorque();
     } 
   }
@@ -244,15 +244,15 @@ namespace gazebo
     }
     pub_joint_state.publish(joint_state_msg); 
 
-    joint_state_msg.header.stamp = ros::Time::now();
-    for (uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
-    {
-      joint_state_msg.name.push_back((std::string)joint_names.at(i));
-      joint_state_msg.position.push_back((float)(th[i]*RAD2DEG));
-      joint_state_msg.velocity.push_back((float)(th_dot[i]));
-      joint_state_msg.effort.push_back((float)joint_torque[i]);
-    }
-    pub_joint_state_deg.publish(joint_state_msg); 
+    // joint_state_msg.header.stamp = ros::Time::now();
+    // for (uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    // {
+    //   joint_state_msg.name.push_back((std::string)joint_names.at(i));
+    //   joint_state_msg.position.push_back((float)(th[i]*RAD2DEG));
+    //   joint_state_msg.velocity.push_back((float)(th_dot[i]));
+    //   joint_state_msg.effort.push_back((float)joint_torque[i]);
+    // }
+    // pub_joint_state_deg.publish(joint_state_msg); 
 
     sensor_msgs::JointState msg;
     msg.header.stamp = ros::Time::now();
@@ -260,6 +260,7 @@ namespace gazebo
     {
       msg.name.push_back((std::string)joint_names.at(i));
       msg.position.push_back((float)(ik_th[i]));
+      msg.velocity.push_back((float)(ik_current_pose[i]));
     }
     pub_joint_state_ik.publish(msg); 
 
@@ -380,7 +381,7 @@ namespace gazebo
     // gain_w << 10, 10, 10;
     // gain_r << 1, 1, 1, 1, 1, 1; //adjust GC intensity
 
-    step_time = 6;
+    step_time = 3;
     
     cnt_time = cnt*inner_dt;   
 
@@ -454,13 +455,14 @@ namespace gazebo
 
     ee_position << T06(0,3), T06(1,3), T06(2,3);
     
-    if (cnt<1) initial_ee_position << ee_position(0), ee_position(1), ee_position(2);
+    // if (cnt<1) initial_ee_position << ee_position(0), ee_position(1), ee_position(2);
+    if (cnt<1) initial_ee_position << 0.4, 0, 0.3;
 
     if(cnt_time <= step_time*100)
     { 
       ref_ee_position(0) = initial_ee_position(0) - 0.2*abs(sin(PI/2*(cnt_time/step_time)));
       ref_ee_position(1) = initial_ee_position(1) - 0.3*sin(PI/2*(cnt_time/step_time));
-      ref_ee_position(2) = initial_ee_position(2) + 0.1*sin(PI*(cnt_time/step_time));
+      ref_ee_position(2) = initial_ee_position(2) + 0.2*sin(PI*(cnt_time/step_time));
       ref_ee_quaternion.w() = 1;
       ref_ee_quaternion.x() = 0;
       ref_ee_quaternion.y() = 0;
@@ -514,7 +516,7 @@ namespace gazebo
     cnt++;
 
     // InverseSolverUsingSRJacobian(ref_ee_position, ref_ee_rotation);
-    IK(ref_ee_position, ref_ee_rotation);
+    InverseSolverUsingJacobian(ref_ee_position, ref_ee_rotation);
   }
 
   //	RBDL
@@ -657,169 +659,59 @@ namespace gazebo
     cnt++;
   }
 
-  //	COM based EE orientation controller - not updated
+  //	IK based Infinity Drawer || Gravity Compensation
   void STArmPlugin::Motion4()
   { 
-    gain_p << 2000, 2000, 2000;     
-    gain_d_joint_space << 3, 5, 3, 0.2, 0.1, 0.1;
-    gain_w << 10, 10, 10;
-
-    step_time = 6;
+    step_time = 3;
     
     cnt_time = cnt*inner_dt;   
 
-    A0 << 1, 0, 0, 0,
-          0, 1, 0, 0,
-          0, 0, 1, 0,
-          0, 0, 0, 1;
-    A1 << cos(th[0]), 0, -sin(th[0]), 0,
-          sin(th[0]), 0, cos(th[0]), 0,
-          0, -1, 0, L1,
-          0, 0, 0, 1;
-    A2 << cos(th[1]), -sin(th[1]), 0, L2*cos(th[1]),
-          sin(th[1]), cos(th[1]), 0, L2*sin(th[1]),
-          0, 0, 1, 0, 
-          0, 0, 0, 1;
-    A3 << cos(th[2]), -sin(th[2]), 0, L3*cos(th[2]), 
-          sin(th[2]), cos(th[2]), 0, L3*sin(th[2]), 
-          0, 0, 1, 0,
-          0, 0, 0, 1;
-    A4 << sin(th[3]), 0, cos(th[3]), 0,
-          -cos(th[3]), 0, sin(th[3]), 0,
-          0, -1, 0, 0,
-          0, 0, 0, 1;
-    A5 << -sin(th[4]), 0, cos(th[4]), 0,
-          cos(th[4]), 0, sin(th[4]), 0,
-          0, 1, 0, L5,
-          0, 0, 0, 1;
-    A6 << -sin(th[5]), -cos(th[5]), 0, -L6*sin(th[5]),
-          cos(th[5]), -sin(th[5]), 0, L6*cos(th[5]),
-          0, 0, 1, 0, 
-          0, 0, 0, 1;          
-          
-    T00 = A0;
-    T01 = T00*A1;
-    T02 = T01*A2;
-    T03 = T02*A3;
-    T04 = T03*A4;
-    T05 = T04*A5;
-    T06 = T05*A6;
-  
-    a0 << T00(0,2), T00(1,2), T00(2,2);
-    a1 << T01(0,2), T01(1,2), T01(2,2);
-    a2 << T02(0,2), T02(1,2), T02(2,2);
-    a3 << T03(0,2), T03(1,2), T03(2,2);
-    a4 << T04(0,2), T04(1,2), T04(2,2);
-    a5 << T05(0,2), T05(1,2), T05(2,2);
+    gain_r << 1, 1, 1, 1, 1, 1; //adjust GC intensity
 
-    P6_P0 << T06(0,3)-T00(0,3), T06(1,3)-T00(1,3), T06(2,3)-T00(2,3);
-    P6_P1 << T06(0,3)-T01(0,3), T06(1,3)-T01(1,3), T06(2,3)-T01(2,3);
-    P6_P2 << T06(0,3)-T02(0,3), T06(1,3)-T02(1,3), T06(2,3)-T02(2,3);
-    P6_P3 << T06(0,3)-T03(0,3), T06(1,3)-T03(1,3), T06(2,3)-T03(2,3);
-    P6_P4 << T06(0,3)-T04(0,3), T06(1,3)-T04(1,3), T06(2,3)-T04(2,3);
-    P6_P5 << T06(0,3)-T05(0,3), T06(1,3)-T05(1,3), T06(2,3)-T05(2,3);
-    
-    J1 << a0.cross(P6_P0), a0;
-    J2 << a1.cross(P6_P1), a1;
-    J3 << a2.cross(P6_P2), a2;
-    J4 << a3.cross(P6_P3), a3;
-    J5 << a4.cross(P6_P4), a4;
-    J6 << a5.cross(P6_P5), a5;
+    threshold << 0.2, 0.1, 0.1, 0.1, 0.1, 0.1; 
+    joint_limit << 3.14,     0,  2.8,  1.87,  1.57,  1.57,
+                    -3.14, -3.14, -0.3, -1.27, -1.57, -1.57;
 
-    Jacobian << J1, J2, J3, J4, J5, J6;
+    if (cnt<1) initial_ee_position << 0.4, 0, 0.3;
 
-    ee_position << T06(0,3), T06(1,3), T06(2,3);
-
-    shoulder_link_com << 0.5*T01(0,3), 0.5*T01(1,3), 0.5*T01(2,3);
-    arm_link_com << T01(0,3) + 0.5*T12(0,3), T01(1,3) + 0.5*T12(1,3), T01(2,3) + 0.5*T12(2,3);
-    elbow_link_com << T02(0,3) + 0.5*T23(0,3), T02(1,3) + 0.5*T23(1,3), T02(2,3) + 0.5*T23(2, 3);
-    forearm_link_com << T03(0,3), T03(1,3), T03(2,3);
-    wrist_link_com << T04(0,3) + 0.5*T45(0,3), T04(1,3) + 0.5*T45(1,3), T04(2,3) + 0.5*T45(2,3);
-    endeffector_link_com << T05(0,3) + 0.5*T56(0,3), T05(1,3) + 0.5*T56(1,3), T05(2,3) + 0.5*T56(2,3);
-
-    manipulator_com <<  (m_Link1*shoulder_link_com(0) + m_Link2*arm_link_com(0) + m_Link3*elbow_link_com(0) + m_Link4*forearm_link_com(0) + m_Link5*wrist_link_com(0) + m_Link6*endeffector_link_com(0)) / m_Arm,
-                        (m_Link1*shoulder_link_com(1) + m_Link2*arm_link_com(1) + m_Link3*elbow_link_com(1) + m_Link4*forearm_link_com(1) + m_Link5*wrist_link_com(1) + m_Link6*endeffector_link_com(1)) / m_Arm,
-                        (m_Link1*shoulder_link_com(2) + m_Link2*arm_link_com(2) + m_Link3*elbow_link_com(2) + m_Link4*forearm_link_com(2) + m_Link5*wrist_link_com(2) + m_Link6*endeffector_link_com(2)) / m_Arm;
-
-    C1 << manipulator_com(0), manipulator_com(1), manipulator_com(2);
-    C2 << (m_Link2*arm_link_com(0) + m_Link3*elbow_link_com(0) + m_Link4*forearm_link_com(0) + m_Link5*wrist_link_com(0) + m_Link6*endeffector_link_com(0))/M2, (m_Link2*arm_link_com(1) + m_Link3*elbow_link_com(1) + m_Link4*forearm_link_com(1) + m_Link5*wrist_link_com(1) + m_Link6*endeffector_link_com(1))/M2, (m_Link2*arm_link_com(2) + m_Link3*elbow_link_com(2) + m_Link4*forearm_link_com(2) + m_Link5*wrist_link_com(2) + m_Link6*endeffector_link_com(2))/M2;
-    C3 << (m_Link3*elbow_link_com(0) + m_Link4*forearm_link_com(0) + m_Link5*wrist_link_com(0) + m_Link6*endeffector_link_com(0))/M3, (m_Link3*elbow_link_com(1) + m_Link4*forearm_link_com(1) + m_Link5*wrist_link_com(1) + m_Link6*endeffector_link_com(1))/M3, (m_Link3*elbow_link_com(2) + m_Link4*forearm_link_com(2) + m_Link5*wrist_link_com(2) + m_Link6*endeffector_link_com(2))/M3;
-    C4 << (m_Link4*forearm_link_com(0) + m_Link5*wrist_link_com(0) + m_Link6*endeffector_link_com(0))/M4, (m_Link4*forearm_link_com(1) + m_Link5*wrist_link_com(1) + m_Link6*endeffector_link_com(1))/M4, (m_Link4*forearm_link_com(2) + m_Link5*wrist_link_com(2) + m_Link6*endeffector_link_com(2))/M4;
-    C5 << (m_Link5*wrist_link_com(0) + m_Link6*endeffector_link_com(0))/M5, (m_Link5*wrist_link_com(1) + m_Link6*endeffector_link_com(1))/M5, (m_Link5*wrist_link_com(2) + m_Link6*endeffector_link_com(2))/M5;
-    C6 << endeffector_link_com(0), endeffector_link_com(1), endeffector_link_com(2);
-
-    C1_P0 << C1(0)-T00(0,3), C1(1)-T00(1,3), C1(2)-T00(2,3);
-    C2_P1 << C2(0)-T01(0,3), C2(1)-T01(1,3), C2(2)-T01(2,3);
-    C3_P2 << C3(0)-T02(0,3), C3(1)-T02(1,3), C3(2)-T02(2,3);
-    C4_P3 << C4(0)-T03(0,3), C4(1)-T03(1,3), C4(2)-T03(2,3);
-    C5_P4 << C5(0)-T04(0,3), C5(1)-T04(1,3), C5(2)-T04(2,3);
-    C6_P5 << C6(0)-T05(0,3), C6(1)-T05(1,3), C6(2)-T05(2,3);
-    
-    J1_CoM = M1 / m_Arm * a0.cross(C1_P0);
-    J2_CoM = M2 / m_Arm * a1.cross(C2_P1);
-    J3_CoM = M3 / m_Arm * a2.cross(C3_P2);
-    J4_CoM = M4 / m_Arm * a3.cross(C4_P3);
-    J5_CoM = M5 / m_Arm * a4.cross(C5_P4);
-    J6_CoM = M6 / m_Arm * a5.cross(C6_P5);
-
-    J_CoM << J1_CoM, J2_CoM, J3_CoM, J4_CoM, J5_CoM, J6_CoM;
-
-    if (cnt<1) initial_com_position << 0.05,0,0.25;
-
-    if(cnt_time <= step_time * 100)
+    if(cnt_time <= step_time*100)
     { 
-      // ref_com_position(0) = initial_com_position(0) - 0.05 * (1 - cos(PI * (cnt_time/step_time)));
-      // ref_com_position(1) = initial_com_position(1) - 0.05 * sin(PI * (cnt_time/step_time));
-      // ref_com_position(2) = initial_com_position(2) + 0.02 * sin(PI * (cnt_time/step_time));
-      // ref_ee_quaternion.w() = qw; 
-			// ref_ee_quaternion.x() = qx; 
-			// ref_ee_quaternion.y() = qy; 
-			// ref_ee_quaternion.z() = qz; 
-      ref_ee_quaternion.w() = 1 - 0.29 * abs(sin(PI * (cnt_time / step_time)));
-			ref_ee_quaternion.x() = 0;
-			ref_ee_quaternion.y() = 0.71 * sin(PI * (cnt_time / step_time));
-			ref_ee_quaternion.z() = 0;
+      ref_ee_position(0) = initial_ee_position(0) - 0.2*abs(sin(PI/2*(cnt_time/step_time)));
+      ref_ee_position(1) = initial_ee_position(1) - 0.3*sin(PI/2*(cnt_time/step_time));
+      ref_ee_position(2) = initial_ee_position(2) + 0.2*sin(PI*(cnt_time/step_time));
+      ref_ee_quaternion.w() = 1;
+      ref_ee_quaternion.x() = 0;
+      ref_ee_quaternion.y() = 0;
+      ref_ee_quaternion.z() = 0;
     }
 
-		desired_com_position = initial_com_position;
+    InverseSolverUsingJacobian(ref_ee_position, ref_ee_rotation);
 
-		for(uint i=0; i<3; i++) virtual_spring_com(i) = gain_p(i) * (desired_com_position(i) - manipulator_com(i));
-		
-    tau_com = J_CoM.transpose() * virtual_spring_com;
-    
-    ee_rotation = T06.block<3,3>(0,0);
-    ee_rotation_x = ee_rotation.block<3,1>(0,0);
-    ee_rotation_y = ee_rotation.block<3,1>(0,1);
-    ee_rotation_z = ee_rotation.block<3,1>(0,2);
+    RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
+    for(uint8_t i = 0; i < 6; i++)
+    {
+      tau_rbdl(i) = arm_rbdl.tau(i);
+    }
 
-    ref_ee_rotation = ref_ee_quaternion.normalized().toRotationMatrix();
+    for(uint8_t i=0; i<6; i++) 
+    {
+      tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot[i]; 
+      tau_gravity_compensation[i] = tau_rbdl[i] * gain_r[i];
+      tau[i] = gain_p_joint_space[i] * (ik_th[i] - th[i]);
+    }
 
-    ref_ee_rotation_x = ref_ee_rotation.block<3,1>(0,0);
-    ref_ee_rotation_y = ref_ee_rotation.block<3,1>(0,1);
-    ref_ee_rotation_z = ref_ee_rotation.block<3,1>(0,2);
+    for(uint8_t i=0; i<6; i++){
+      if(th(i) > joint_limit(0,i) - threshold(i) && tau(i) > 0 || th(i) < joint_limit(1,i) + threshold(i) && tau(i) < 0)
+      {
+        joint_torque[i] = tau_gravity_compensation[i] - tau_viscous_damping[i];
+      }
+      else
+      {
+        joint_torque[i] = tau_gravity_compensation[i] - tau_viscous_damping[i] + tau[i]; 
+      } 
+    }
 
-    ee_orientation_error = ee_rotation_x.cross(ref_ee_rotation_x) + ee_rotation_y.cross(ref_ee_rotation_y) + ee_rotation_z.cross(ref_ee_rotation_z);
-    
-		ee_momentum << gain_w(0) * ee_orientation_error(0), gain_w(1) * ee_orientation_error(1), gain_w(2) * ee_orientation_error(2);
-
-    virtual_spring_rotational << 0, 0, 0, ee_momentum(0), ee_momentum(1), ee_momentum(2);
-    tau_rotational = Jacobian.transpose() * virtual_spring_rotational;
-
-    tau_gravity_compensation[0] = 0.0;
-    tau_gravity_compensation[1] = 1.9318*sin(th[1])*sin(th[2]) - 1.9318*cos(th[1])*cos(th[2]) - 2.9498*cos(th[1]) + 0.43025*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43025*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14096*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-    tau_gravity_compensation[2] = 1.9318*sin(th[1])*sin(th[2]) - 1.9318*cos(th[1])*cos(th[2]) + 0.43025*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43025*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14096*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-    tau_gravity_compensation[3] = 0.43025*cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + 0.43025*sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])) + 0.14096*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-    tau_gravity_compensation[4] = 0.14096*cos(th[5] + 1.5708)*sin(th[4] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-    tau_gravity_compensation[5] = 0.14096*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
-
-    if (cnt<1) last_th = th;
-    th_dot = (th - last_th) / dt;
-    last_th = th;
-    for (int i = 0; i < 6; i++) tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot[i];
-    
-		joint_torque =  tau_com + tau_rotational + tau_gravity_compensation - tau_viscous_damping;
-		
-		cnt++;
+    cnt++;
   }
 
   //	COM based HMD orientation follower
@@ -1102,6 +994,131 @@ namespace gazebo
   }
 
 
+  void STArmPlugin::RBQ3Motion2()
+  {
+    traj_time = cnt * inner_dt;
+    frequency << 0.2, 0.2, 0.2;
+    amplitude << 1, 1, 1;
+    horizontal_translation << 0, 1, 0;
+    vertical_translation << 0, 0, 0;
+    rbq3_base_range_of_motion << 5, 5, 5;
+    // rbq3_base_range_of_motion << 0, 0, 0;
+
+    for(uint8_t i=0; i<3; i++)
+    {
+      rbq3_ref_trajectory[i] = amplitude[i] * sin(2 * PI * frequency[i] * (traj_time - horizontal_translation[i])) + vertical_translation[i];
+      rbq3_base_rpy_ref[i] = DEG2RAD * rbq3_base_range_of_motion[i] * rbq3_ref_trajectory[i];
+    }
+
+    rbq_base_gain_p = 1000;
+    rbq_base_gain_d = 50;
+
+    rbq3_base_torque = rbq_base_gain_p * (rbq3_base_rpy_ref - rbq3_base_rpy) - rbq_base_gain_d * rbq3_base_rpy_dot;
+
+    float quad_js_p = 100;
+    float quad_js_d = 0;
+
+    Vector3d rr_q, rl_q, fr_q, fl_q;
+
+    Vector3d reference_position_right, reference_position_left;
+
+    reference_position_right << 0, -0.05, -0.3;
+    reference_position_left << 0, 0.05, -0.3;
+
+    rr_q = GetRBQ3RightIK(reference_position_right);
+    fr_q = GetRBQ3RightIK(reference_position_right);
+
+    rl_q = GetRBQ3LeftIK(reference_position_left);
+    fl_q = GetRBQ3LeftIK(reference_position_left);
+
+    quad_th_ref << rr_q(0), rr_q(1), rr_q(2),
+                   rl_q(0), rl_q(1), rl_q(2),
+                   fr_q(0), fr_q(1), fr_q(2),
+                   fl_q(0), fl_q(1), fl_q(2);
+
+    for(uint8_t i=0; i<12; i++)
+    {
+      quad_joint_torque(i) = quad_js_p * (quad_th_ref(i) - quad_th(i)) - quad_js_d * quad_th_dot(i);
+    }
+
+
+
+    // l_HT0 << 1, 0, 0, 0,
+    //           0, 1, 0, 0,
+    //           0, 0, 1, 0,
+    //           0, 0, 0, 1;
+    // l_HT1 << cosf(a_th[0]), 0, -sinf(a_th[0]), 0,
+    //           sinf(a_th[0]), 0, cosf(a_th[0]), 0,
+    //           0, -1, 0, 0,
+    //           0, 0, 0, 1;
+    // l_HT4 << sinf(a_th[3]), 0, cosf(a_th[3]), 0,
+    //           -cosf(a_th[3]), 0, sinf(a_th[3]), 0,
+    //           0, -1, 0, 0,
+    //           0, 0, 0, 1;
+    // l_HT5 << -sinf(a_th[4]), 0, cosf(a_th[4]), 0,
+    //           cosf(a_th[4]), 0, sinf(a_th[4]), 0,
+    //           0, 1, 0, 0,
+    //           0, 0, 0, 1;
+
+
+
+
+
+  }
+
+  
+  Vector3d STArmPlugin::GetRBQ3RightIK(Vector3d position)
+  {
+    // const float d1 = 0.29785, d2 = 0.055, d3 = 0.110945, d4 = 0.3205, d5 = 0.025, d6 = 0.3395, d3r = -0.110945;
+    const float d1 = 0.22445, d2 = 0.07946, d3 = 0.06995, d4 = 0.225, d5 = 0.0, d6 = 0.225, d3r = -0.06995;
+
+    Vector3d q;
+
+    float alpha = atan2(-1 * position(2), position(1));
+    float beta = atan2(sqrt(position(1) * position(1) + position(2) * position(2) - d3 * d3), d3r);
+    q(0) = beta - alpha;
+
+    float dESquare = position(0) * position(0) + position(1) * position(1) + position(2) * position(2);
+    float d43 = sqrt(d4 * d4 + d3 * d3);
+    float cosSigma = (dESquare - (d43 * d43 + d6 * d6 + d3 * d3)) / (2 * d43 * d6);
+    float sinSigma = -sqrt(1 - (cosSigma * cosSigma));
+    float sigma = atan2(d6 * sinSigma, d6 * cosSigma);
+    q(2) = sigma;
+
+    alpha = atan2(-1 * position(0), sqrt(position(1) * position(1) + position(2) * position(2) - d3 * d3));
+    beta = atan2(d6 * sinSigma, d4 + d6 * cosSigma);
+    q(1) = alpha - beta;
+
+    return q;
+  }
+
+
+  Vector3d STArmPlugin::GetRBQ3LeftIK(Vector3d position)
+  {
+    // const float d1 = 0.29785, d2 = 0.055, d3 = 0.110945, d4 = 0.3205, d5 = 0.025, d6 = 0.3395, d3r = -0.110945;
+    const float d1 = 0.22445, d2 = 0.07946, d3 = 0.06995, d4 = 0.225, d5 = 0.0, d6 = 0.225, d3r = -0.06995;
+
+    Vector3d q;
+
+    float alpha = atan2(-1 * position(2), position(1));
+    float beta = atan2(sqrt(position(1) * position(1) + position(2) * position(2) - d3 * d3), d3);
+    q(0) = beta - alpha;
+
+    float dESquare = position(0) * position(0) + position(1) * position(1) + position(2) * position(2);
+    float d43 = sqrt(d4 * d4 + d3 * d3);
+    float cosSigma = (dESquare - (d43 * d43 + d6 * d6 + d3 * d3)) / (2 * d43 * d6);
+    float sinSigma = -sqrt(1 - (cosSigma * cosSigma));
+    float sigma = atan2(d6 * sinSigma, d6 * cosSigma);
+    q(2) = sigma;
+
+    alpha = atan2(-1 * position(0), sqrt(position(1) * position(1) + position(2) * position(2) - d3 * d3));
+    beta = atan2(d6 * sinSigma, d4 + d6 * cosSigma);
+    q(1) = alpha - beta;
+
+    return q;
+  }
+
+
   void STArmPlugin::SwitchModeRBQ3(const std_msgs::Bool &msg)
   {
     is_move_rbq3 = &msg;
@@ -1184,6 +1201,54 @@ namespace gazebo
 
     this->rbq3_base_joint->SetForce(0, rbq3_base_torque(0));
     this->rbq3_base_joint->SetForce(1, rbq3_base_torque(1));
+  }
+
+
+  bool STArmPlugin::InverseSolverUsingJacobian(Vector3d a_target_position, Matrix3d a_target_orientation)
+  {
+    //solver parameter
+    const double lambda = 0.1;
+    const int8_t iteration = 80;
+    const double tolerance = 0.0001;
+
+    VectorXd l_q = VectorXd::Zero(6);
+
+    for(int8_t i=0; i<6; i++)
+    {
+      l_q(i) = th(i);
+    }
+
+    //delta parameter
+    VectorXd pose_difference = VectorXd::Zero(6);
+    VectorXd l_delta_q = VectorXd::Zero(6);
+
+    for (int count = 0; count < iteration; count++)
+    {
+      UpdateJacobian(l_q);
+
+      pose_difference = PoseDifference(a_target_position, a_target_orientation, fk_current_position, fk_current_orientation);
+
+      if (pose_difference.norm() < tolerance)
+      {
+        // std::cout << "Solved IK" << std::endl;
+        std::cout << "Number of iterations: " << count << "     normalized pose difference: " << pose_difference.norm() << std::endl;
+        ik_th = l_q;
+        return true;
+      }
+      //get delta angle
+      Eigen::ColPivHouseholderQR<MatrixXd> dec(JacobianForIK);
+      l_delta_q = lambda * dec.solve(pose_difference);
+      for(uint8_t i=0; i<6; i++)
+      {
+        l_q[i] += l_delta_q[i];
+      }
+    }
+    for(uint8_t i=0; i<6; i++)
+    {
+      // ik_th(i) = l_q(i);
+      ik_current_pose(i) = pose_difference(i);
+    }
+    return false;
   }
 
 
@@ -1273,7 +1338,6 @@ namespace gazebo
   }
 
 
-
   bool STArmPlugin::IK(Vector3d a_target_position, Matrix3d a_target_orientation)
   {
     int it = 0;
@@ -1296,6 +1360,7 @@ namespace gazebo
       // GetJacobians(l_q, l_Jacobian, l_current_pose);
 
       // l_Jacobian_inverse = getDampedPseudoInverse(l_Jacobian, 0);
+      l_Jacobian_inverse = l_Jacobian.inverse();
 
       pose_difference = PoseDifference(a_target_position, a_target_orientation, l_current_pose);
 
@@ -1326,23 +1391,22 @@ namespace gazebo
 
     std::cout << "Did not converge, iteration number: " << it << "    pose difference normalized: " << (float)pose_difference.norm() << std::endl;
 
+    std::cout << "Here is the matrix J:\n" << l_Jacobian << std::endl;
+    std::cout << "\n Here is the matrix J_inv:\n" << l_Jacobian_inverse << std::endl;
+
     return false;
   }
 
 
-
-  VectorXd STArmPlugin::PoseDifference(Vector3d a_desired_position, Matrix3d a_desired_orientation, Matrix4d a_present_pose)
+  VectorXd STArmPlugin::PoseDifference(Vector3d a_desired_position, Matrix3d a_desired_orientation, Vector3d a_present_position, Matrix3d a_present_orientation)
   {
-    Vector3d l_present_position;
-    Matrix3d l_present_orientation;
     Vector3d l_position_difference, l_orientation_difference;
     VectorXd l_pose_difference(6);
 
-    l_present_position << a_present_pose(0,3), a_present_pose(1,3), a_present_pose(2,3);
-    l_present_orientation = a_present_pose.block<3,3>(0,0);
+    l_orientation_difference = Vector3d::Zero(3);
 
-    l_position_difference = PositionDifference(a_desired_position, l_present_position);
-    l_orientation_difference = OrientationDifference(a_desired_orientation, l_present_orientation);
+    l_position_difference = PositionDifference(a_desired_position, a_present_position);
+    // l_orientation_difference = OrientationDifference(a_desired_orientation, a_present_orientation);
     l_pose_difference << l_position_difference(0), l_position_difference(1), l_position_difference(2),
                         l_orientation_difference(0), l_orientation_difference(1), l_orientation_difference(2);
 
@@ -1426,7 +1490,7 @@ namespace gazebo
   }
 
   // a argument   // m member    // l local   //p pointer     //r reference   //
-  void STArmPlugin::GetJacobians(VectorXd a_th, MatrixXd a_Jacobian, Matrix4d a_Current_Pose)
+  void STArmPlugin::UpdateJacobian(VectorXd a_th)
   {
     Matrix4d l_HT0, l_HT1, l_HT2, l_HT3, l_HT4, l_HT5, l_HT6;
     Matrix4d l_T00, l_T01, l_T02, l_T03, l_T04, l_T05, l_T06;
@@ -1438,28 +1502,28 @@ namespace gazebo
           0, 1, 0, 0,
           0, 0, 1, 0,
           0, 0, 0, 1;
-    l_HT1 << cos(a_th[0]), 0, -sin(a_th[0]), 0,
-          sin(a_th[0]), 0, cos(a_th[0]), 0,
+    l_HT1 << cosf(a_th[0]), 0, -sinf(a_th[0]), 0,
+          sinf(a_th[0]), 0, cosf(a_th[0]), 0,
           0, -1, 0, L1,
           0, 0, 0, 1;
-    l_HT2 << cos(a_th[1]), -sin(a_th[1]), 0, L2*cos(a_th[1]),
-          sin(a_th[1]), cos(a_th[1]), 0, L2*sin(a_th[1]),
+    l_HT2 << cosf(a_th[1]), -sinf(a_th[1]), 0, L2*cosf(a_th[1]),
+          sinf(a_th[1]), cosf(a_th[1]), 0, L2*sinf(a_th[1]),
           0, 0, 1, 0, 
           0, 0, 0, 1;
-    l_HT3 << cos(a_th[2]), -sin(a_th[2]), 0, L3*cos(a_th[2]), 
-          sin(a_th[2]), cos(a_th[2]), 0, L3*sin(a_th[2]), 
+    l_HT3 << cosf(a_th[2]), -sinf(a_th[2]), 0, L3*cosf(a_th[2]), 
+          sinf(a_th[2]), cosf(a_th[2]), 0, L3*sinf(a_th[2]), 
           0, 0, 1, 0,
           0, 0, 0, 1;
-    l_HT4 << sin(a_th[3]), 0, cos(a_th[3]), 0,
-          -cos(a_th[3]), 0, sin(a_th[3]), 0,
+    l_HT4 << sinf(a_th[3]), 0, cosf(a_th[3]), 0,
+          -cosf(a_th[3]), 0, sinf(a_th[3]), 0,
           0, -1, 0, 0,
           0, 0, 0, 1;
-    l_HT5 << -sin(a_th[4]), 0, cos(a_th[4]), 0,
-          cos(a_th[4]), 0, sin(a_th[4]), 0,
+    l_HT5 << -sinf(a_th[4]), 0, cosf(a_th[4]), 0,
+          cosf(a_th[4]), 0, sinf(a_th[4]), 0,
           0, 1, 0, L5,
           0, 0, 0, 1;
-    l_HT6 << -sin(a_th[5]), -cos(a_th[5]), 0, -L6*sin(a_th[5]),
-          cos(a_th[5]), -sin(a_th[5]), 0, L6*cos(a_th[5]),
+    l_HT6 << -sinf(a_th[5]), -cosf(a_th[5]), 0, -L6*sinf(a_th[5]),
+          cosf(a_th[5]), -sinf(a_th[5]), 0, L6*cosf(a_th[5]),
           0, 0, 1, 0, 
           0, 0, 0, 1;
 
@@ -1493,12 +1557,85 @@ namespace gazebo
     l_J5 << l_a4.cross(l_P6_P4), l_a4;
     l_J6 << l_a5.cross(l_P6_P5), l_a5;
 
-    a_Jacobian << l_J1, l_J2, l_J3, l_J4, l_J5, l_J6;
+    JacobianForIK << l_J1, l_J2, l_J3, l_J4, l_J5, l_J6;
 
-    a_Current_Pose = l_T06;
+    // a_Current_Pose = l_T06;
+
+    fk_current_position << l_T06(0,3), l_T06(1,3), l_T06(2,3);
+    fk_current_orientation = l_T06.block<3,3>(0,0);
+
+    // ik_current_pose << a_current_position(0), a_current_position(1), a_current_position(2), a_th(0), a_th(1), a_th(2);
   }
 
 
+
+  // // a argument   // m member    // l local   //p pointer     //r reference   //
+  // void STArmPlugin::GetJacobians(VectorXd a_th, MatrixXd a_Jacobian, Vector3d a_current_position, Matrix3d a_current_orientation)
+  // {
+  //   Matrix4d l_HT0, l_HT1, l_HT2, l_HT3, l_HT4, l_HT5, l_HT6;
+  //   Matrix4d l_T00, l_T01, l_T02, l_T03, l_T04, l_T05, l_T06;
+  //   Vector3d l_a0, l_a1, l_a2, l_a3, l_a4, l_a5;
+  //   Vector3d l_P6_P0, l_P6_P1, l_P6_P2, l_P6_P3, l_P6_P4, l_P6_P5;
+  //   VectorXd l_J1(6), l_J2(6), l_J3(6), l_J4(6), l_J5(6), l_J6(6); 
+  //   l_HT0 << 1, 0, 0, 0,
+  //         0, 1, 0, 0,
+  //         0, 0, 1, 0,
+  //         0, 0, 0, 1;
+  //   l_HT1 << cosf(a_th[0]), 0, -sinf(a_th[0]), 0,
+  //         sinf(a_th[0]), 0, cosf(a_th[0]), 0,
+  //         0, -1, 0, L1,
+  //         0, 0, 0, 1;
+  //   l_HT2 << cosf(a_th[1]), -sinf(a_th[1]), 0, L2*cosf(a_th[1]),
+  //         sinf(a_th[1]), cosf(a_th[1]), 0, L2*sinf(a_th[1]),
+  //         0, 0, 1, 0, 
+  //         0, 0, 0, 1;
+  //   l_HT3 << cosf(a_th[2]), -sinf(a_th[2]), 0, L3*cosf(a_th[2]), 
+  //         sinf(a_th[2]), cosf(a_th[2]), 0, L3*sinf(a_th[2]), 
+  //         0, 0, 1, 0,
+  //         0, 0, 0, 1;
+  //   l_HT4 << sinf(a_th[3]), 0, cosf(a_th[3]), 0,
+  //         -cosf(a_th[3]), 0, sinf(a_th[3]), 0,
+  //         0, -1, 0, 0,
+  //         0, 0, 0, 1;
+  //   l_HT5 << -sinf(a_th[4]), 0, cosf(a_th[4]), 0,
+  //         cosf(a_th[4]), 0, sinf(a_th[4]), 0,
+  //         0, 1, 0, L5,
+  //         0, 0, 0, 1;
+  //   l_HT6 << -sinf(a_th[5]), -cosf(a_th[5]), 0, -L6*sinf(a_th[5]),
+  //         cosf(a_th[5]), -sinf(a_th[5]), 0, L6*cosf(a_th[5]),
+  //         0, 0, 1, 0, 
+  //         0, 0, 0, 1;
+  //   l_T00 = l_HT0;
+  //   l_T01 = l_T00 * l_HT1;
+  //   l_T02 = l_T01 * l_HT2;
+  //   l_T03 = l_T02 * l_HT3;
+  //   l_T04 = l_T03 * l_HT4;
+  //   l_T05 = l_T04 * l_HT5;
+  //   l_T06 = l_T05 * l_HT6;
+  //   l_a0 << l_T00(0,2), l_T00(1,2), l_T00(2,2);
+  //   l_a1 << l_T01(0,2), l_T01(1,2), l_T01(2,2);
+  //   l_a2 << l_T02(0,2), l_T02(1,2), l_T02(2,2);
+  //   l_a3 << l_T03(0,2), l_T03(1,2), l_T03(2,2);
+  //   l_a4 << l_T04(0,2), l_T04(1,2), l_T04(2,2);
+  //   l_a5 << l_T05(0,2), l_T05(1,2), l_T05(2,2);
+  //   l_P6_P0 << l_T06(0,3) - l_T00(0,3), l_T06(1,3) - l_T00(1,3), l_T06(2,3) - l_T00(2,3);
+  //   l_P6_P1 << l_T06(0,3) - l_T01(0,3), l_T06(1,3) - l_T01(1,3), l_T06(2,3) - l_T01(2,3);
+  //   l_P6_P2 << l_T06(0,3) - l_T02(0,3), l_T06(1,3) - l_T02(1,3), l_T06(2,3) - l_T02(2,3);
+  //   l_P6_P3 << l_T06(0,3) - l_T03(0,3), l_T06(1,3) - l_T03(1,3), l_T06(2,3) - l_T03(2,3);
+  //   l_P6_P4 << l_T06(0,3) - l_T04(0,3), l_T06(1,3) - l_T04(1,3), l_T06(2,3) - l_T04(2,3);
+  //   l_P6_P5 << l_T06(0,3) - l_T05(0,3), l_T06(1,3) - l_T05(1,3), l_T06(2,3) - l_T05(2,3);
+  //   l_J1 << l_a0.cross(l_P6_P0), l_a0;
+  //   l_J2 << l_a1.cross(l_P6_P1), l_a1;
+  //   l_J3 << l_a2.cross(l_P6_P2), l_a2;
+  //   l_J4 << l_a3.cross(l_P6_P3), l_a3;
+  //   l_J5 << l_a4.cross(l_P6_P4), l_a4;
+  //   l_J6 << l_a5.cross(l_P6_P5), l_a5;
+  //   a_Jacobian << l_J1, l_J2, l_J3, l_J4, l_J5, l_J6;
+  //   // a_Current_Pose = l_T06;
+  //   a_current_position << l_T06(0,3), l_T06(1,3), l_T06(2,3);
+  //   a_current_orientation = l_T06.block<3,3>(0,0);
+  //   ik_current_pose << a_current_position(0), a_current_position(1), a_current_position(2), a_th(0), a_th(1), a_th(2);
+  // }
   // MatrixXd STArmPlugin::jacobian()
   // {
   //   MatrixXd jacobian = MatrixXd::Identity(6, 6);
