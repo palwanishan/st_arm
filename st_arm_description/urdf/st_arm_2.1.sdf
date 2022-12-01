@@ -382,6 +382,7 @@
         </geometry>
       </visual>
     </link>
+    
     <joint name='gripper_left_joint' type='prismatic'>
       <pose relative_to='wrist_yaw_link'>0.083595 0.00168 0 0 -0 0</pose>
       <parent>wrist_yaw_link</parent>
@@ -402,6 +403,7 @@
         </dynamics>
       </axis>
     </joint>
+
     <link name='gripper_left_link'>
       <pose relative_to='gripper_left_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -435,6 +437,7 @@
         </geometry>
       </visual>
     </link>
+
     <joint name='gripper_right_joint' type='prismatic'>
       <pose relative_to='wrist_yaw_link'>0.083595 0.00168 0 0 -0 0</pose>
       <parent>wrist_yaw_link</parent>
@@ -455,8 +458,10 @@
         </dynamics>
       </axis>
     </joint>
+    
     <link name='gripper_right_link'>
       <pose relative_to='gripper_right_joint'>0 0 0 0 -0 0</pose>
+      
       <inertial>
         <pose>0.011191 -0.017208 0 0 -0 0</pose>
         <mass>0.0151655</mass>
@@ -469,6 +474,7 @@
           <izz>8.50839e-06</izz>
         </inertia>
       </inertial>
+
       <collision name='gripper_right_link_collision'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>

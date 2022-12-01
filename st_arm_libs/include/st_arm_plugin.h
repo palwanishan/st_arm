@@ -9,7 +9,6 @@
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/physics/physics.hh>
 #include <gazebo/sensors/sensors.hh>
-//#include <gazebo/plugins/CameraPlugin.hh>           //++
 
 #include <string.h>
 #include <iostream>
@@ -25,8 +24,7 @@
 #include <tf2_msgs/TFMessage.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseStamped.h>
-//#include <gazebo_plugins/gazebo_ros_camera_utils.h>   //++
-#include <std_msgs/Bool.h>     //++
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float32.h>
 #include <rbdl/rbdl.h>
@@ -118,7 +116,7 @@ Arm_RBDL arm_rbdl;
 
 namespace gazebo
 {
-  class STArmPlugin : public ModelPlugin//, CameraPlugin, GazeboRosCameraUtils     //++ CameraPlugin, GazeboRosCameraUtils
+  class STArmPlugin : public ModelPlugin
   {
     ModelPtr model;
     LinkPtr Base, Link1, Link2, Link3, Link4, Link5, Link6, LinkGripperL, LinkGripperR;
@@ -173,6 +171,23 @@ namespace gazebo
 
     Matrix3d fk_current_orientation;
     Vector3d fk_current_position;
+
+    //*************** Weight estimation **************//
+    VectorXd pose_difference = VectorXd::Zero(6);
+    Vector3d position_difference = VectorXd::Zero(3);
+    float position_difference_magnitude;
+    float force_magnitude;
+    float estimated_object_weight;
+    float real_object_weight;
+    bool is_start_estimation;
+
+    ros::Publisher pub_weight_est_pose_difference;
+    ros::Publisher pub_weight_est_estimated_obj_weight;
+    ros::Subscriber sub_weight_est_real_obj_weight;
+    ros::Subscriber sub_weight_est_start_estimation;
+
+    void EstimateObjectWeight();
+
 
     //*************** Trajectory Variables**************//
     double step_time{0};
@@ -239,7 +254,7 @@ namespace gazebo
 
     Vector3d ee_rotation_x, ee_rotation_y, ee_rotation_z, 
             ref_ee_rotation_x, ref_ee_rotation_y, ref_ee_rotation_z,
-            ee_orientation_error, ee_force, ee_momentum;
+            ee_orientation_error, ee_position_error, ee_force, ee_momentum;
 
     Matrix3d ee_rotation, ref_ee_rotation;
 
@@ -308,7 +323,8 @@ namespace gazebo
       Motion_2,
       Motion_3,
       Motion_4,
-      Motion_5    
+      Motion_5,
+      Motion_6
     };
     enum ControlMode control_mode;
 
@@ -336,6 +352,7 @@ namespace gazebo
     void Motion3();
     void Motion4();
     void Motion5();
+    void Motion6();
     void SwitchMode(const std_msgs::Int32Ptr & msg);
     void SwitchGain(const std_msgs::Int32Ptr & msg);
     void SwitchGainJointSpaceP(const std_msgs::Float32MultiArrayConstPtr &msg);
@@ -357,6 +374,7 @@ namespace gazebo
     Vector3d GetRBQ3LeftIK(Vector3d position);
     
     void GripperControl();
+    float Map(float x, float in_min, float in_max, float out_min, float out_max);
   
     bool InverseSolverUsingJacobian(Vector3d a_target_position, Matrix3d a_target_orientation);
     bool InverseSolverUsingSRJacobian(Vector3d target_position, Matrix3d target_orientation);

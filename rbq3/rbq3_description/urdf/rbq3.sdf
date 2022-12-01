@@ -907,10 +907,10 @@
           <ambient>0.0 0.0 0.0 1</ambient>
         </material>
       </visual>
-      <sensor name="IMX219_Front" type="camera">
+      <sensor name="front_camera" type="camera">
         <pose>+0.12 +0 +0 0 0 0</pose>
         <camera>
-          <horizontal_fov>1.747</horizontal_fov>
+          <horizontal_fov>2.1</horizontal_fov>
           <image>
             <format>R8G8B8</format>
             <width>848</width>
@@ -920,17 +920,26 @@
             <near>0.02</near>
             <far>100</far>
           </clip>
+          <lens>
+            <type>gnomonical</type>
+            <scale_to_hfov>true</scale_to_hfov>
+            <cutoff_angle>1.5707</cutoff_angle>
+            <env_texture_size>512</env_texture_size>
+          </lens>
         </camera>
         <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
           <alwaysOn>true</alwaysOn>
           <updateRate>60</updateRate>
-          <cameraName>Front</cameraName>
+          <robotNamespace>gazebo</robotNamespace>
+          <cameraName>front_camera</cameraName>
           <imageTopicName>image_raw</imageTopicName>
           <cameraInfoTopicName>camera_info</cameraInfoTopicName>
           <frameName>camera_link</frameName>
         </plugin>
         <visualize>true</visualize>
       </sensor>
+
+      <!--
       <sensor name="IMX219_Back" type="camera">
         <pose>-0.12 +0 +0 0 0 3.141592</pose>
         <camera>
@@ -954,7 +963,7 @@
           <frameName>camera_link</frameName>
         </plugin>
         <visualize>true</visualize>
-      </sensor>
+      </sensor>      
       <sensor name="IMX219_Left" type="camera">
         <pose>+0 +0.1 +0 0 0 1.570796</pose>
         <camera>
@@ -1003,7 +1012,7 @@
         </plugin>
         <visualize>true</visualize>
       </sensor>
-      
+      -->
     </link>
     <joint name='shoulder_yaw_joint' type='revolute'>
       <pose relative_to='manipulator_base_link'>0 0 0 0 -0 0</pose>
@@ -1099,6 +1108,7 @@
         </material>
       </visual>
     </link>
+
     <joint name='elbow_pitch_joint' type='revolute'>
       <pose relative_to='shoulder_pitch_link'>0.25 0 0 0 -0 0</pose>
       <parent>shoulder_pitch_link</parent>
@@ -1119,6 +1129,7 @@
         </dynamics>
       </axis>
     </joint>
+
     <link name='elbow_pitch_link'>
       <pose relative_to='elbow_pitch_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -1146,6 +1157,7 @@
         </material>
       </visual>
     </link>
+    
     <joint name='wrist_pitch_joint' type='revolute'>
       <pose relative_to='elbow_pitch_link'>0.25 0 0 0 -0 0</pose>
       <parent>elbow_pitch_link</parent>
@@ -1166,6 +1178,7 @@
         </dynamics>
       </axis>
     </joint>
+    
     <link name='wrist_pitch_link'>
       <pose relative_to='wrist_pitch_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -1193,6 +1206,7 @@
         </material>
       </visual>
     </link>
+    
     <joint name='wrist_roll_joint' type='revolute'>
       <pose relative_to='wrist_pitch_link'>0 0 0 0 -0 0</pose>
       <parent>wrist_pitch_link</parent>
@@ -1213,6 +1227,7 @@
         </dynamics>
       </axis>
     </joint>
+    
     <link name='wrist_roll_link'>
       <pose relative_to='wrist_roll_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -1240,6 +1255,7 @@
         </material>
       </visual>
     </link>
+    
     <joint name='wrist_yaw_joint' type='revolute'>
       <pose relative_to='wrist_roll_link'>0.1045 0 0 0 -0 0</pose>
       <parent>wrist_roll_link</parent>
@@ -1260,6 +1276,7 @@
         </dynamics>
       </axis>
     </joint>
+    
     <link name='wrist_yaw_link'>
       <pose relative_to='wrist_yaw_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -1286,7 +1303,39 @@
           <ambient>0.1 0.1 0.1 1</ambient>
         </material>
       </visual>
+      <sensor name="end_effector_camera" type="camera">
+        <pose>0.07 0 0.08 0 0.5 0</pose>
+        <camera>
+          <horizontal_fov>2.1</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>848</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>100</far>
+          </clip>
+          <lens>
+            <type>gnomonical</type>
+            <scale_to_hfov>true</scale_to_hfov>
+            <cutoff_angle>1.5707</cutoff_angle>
+            <env_texture_size>512</env_texture_size>
+          </lens>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>60</updateRate>
+          <robotNamespace>gazebo</robotNamespace>
+          <cameraName>ee_camera</cameraName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+        </plugin>
+        <visualize>true</visualize>
+      </sensor>
 
+      <!--
       <sensor name="D435" type="depth">
         <pose>+0.07 +0 +0.05 0 0 0</pose>
         <camera>
@@ -1301,7 +1350,6 @@
             <far>100</far>
           </clip>
         </camera>
-        
         <plugin name="camera_plugin" filename="libgazebo_ros_openni_kinect.so">
           <baseline>0.2</baseline>
           <alwaysOn>true</alwaysOn>
@@ -1328,8 +1376,6 @@
           <focalLength>0</focalLength>
           <hackBaseline>0</hackBaseline>
         </plugin>
-        
-        <!--
         <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
           <alwaysOn>true</alwaysOn>
           <updateRate>60</updateRate>
@@ -1338,11 +1384,12 @@
           <cameraInfoTopicName>camera_info</cameraInfoTopicName>
           <frameName>camera_link_optical</frameName>
         </plugin>
-        -->
         <visualize>true</visualize>
       </sensor>
+      -->
 
     </link>
+
     <joint name='gripper_left_joint' type='prismatic'>
       <pose relative_to='wrist_yaw_link'>0.083595 0 0 0 -0 0</pose>
       <parent>wrist_yaw_link</parent>
@@ -1363,8 +1410,11 @@
         </dynamics>
       </axis>
     </joint>
+
     <link name='gripper_left_link'>
       <pose relative_to='gripper_left_joint'>0 0 0 0 -0 0</pose>
+
+      <!--
       <inertial>
         <pose>0 0 0 0 -0 0</pose>
         <mass>0.0001</mass>
@@ -1377,6 +1427,37 @@
           <izz>1e-16</izz>
         </inertia>
       </inertial>
+      -->
+      <!--
+      <inertial>
+        <pose>0 0 0 0 -0 0</pose>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>1e-8</ixx>
+          <ixy>1e-8</ixy>
+          <ixz>1e-8</ixz>
+          <iyy>1e-10</iyy>
+          <iyz>1e-10</iyz>
+          <izz>1e-10</izz>
+        </inertia>
+      </inertial>
+      -->
+
+      <!---->
+      <inertial>
+        <pose>0.011191 0.017208 -0 0 -0 0</pose>
+        <mass>0.0151655</mass>
+        <inertia>
+          <ixx>1.52745e-06</ixx>
+          <ixy>1.20106e-06</ixy>
+          <ixz>3.87211e-18</ixz>
+          <iyy>7.43136e-06</iyy>
+          <iyz>-6.58552e-19</iyz>
+          <izz>8.50839e-06</izz>
+        </inertia>
+      </inertial>
+      
+      <!--
       <collision name='gripper_left_link_collision'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1386,6 +1467,8 @@
           </mesh>
         </geometry>
       </collision>
+      -->
+
       <visual name='gripper_left_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1399,6 +1482,7 @@
         </material>
       </visual>
     </link>
+
     <joint name='gripper_right_joint' type='prismatic'>
       <pose relative_to='wrist_yaw_link'>0.083595 0 0 0 -0 0</pose>
       <parent>wrist_yaw_link</parent>
@@ -1419,20 +1503,39 @@
         </dynamics>
       </axis>
     </joint>
+
     <link name='gripper_right_link'>
       <pose relative_to='gripper_right_joint'>0 0 0 0 -0 0</pose>
+
+      <!--
       <inertial>
         <pose>0 0 0 0 -0 0</pose>
-        <mass>0.0001</mass>
+        <mass>0.001</mass>
         <inertia>
-          <ixx>1e-16</ixx>
-          <ixy>1e-16</ixy>
-          <ixz>1e-16</ixz>
-          <iyy>1e-16</iyy>
-          <iyz>1e-16</iyz>
-          <izz>1e-16</izz>
+          <ixx>1e-8</ixx>
+          <ixy>1e-8</ixy>
+          <ixz>1e-8</ixz>
+          <iyy>1e-10</iyy>
+          <iyz>1e-10</iyz>
+          <izz>1e-10</izz>
         </inertia>
       </inertial>
+      -->
+      <!---->
+      <inertial>
+        <pose>0.011191 -0.017208 0 0 -0 0</pose>
+        <mass>0.0151655</mass>
+        <inertia>
+          <ixx>1.52745e-06</ixx>
+          <ixy>-1.20106e-06</ixy>
+          <ixz>1.01095e-20</ixz>
+          <iyy>7.43136e-06</iyy>
+          <iyz>9.01849e-21</iyz>
+          <izz>8.50839e-06</izz>
+        </inertia>
+      </inertial>
+      
+      <!--
       <collision name='gripper_right_link_collision'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1442,6 +1545,9 @@
           </mesh>
         </geometry>
       </collision>
+      -->
+
+
       <visual name='gripper_right_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1455,6 +1561,8 @@
         </material>
       </visual>
     </link>
+
+    
 
   </model>
 </sdf>

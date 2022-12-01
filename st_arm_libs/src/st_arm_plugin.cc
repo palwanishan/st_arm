@@ -63,30 +63,29 @@ namespace gazebo
     pub_joint_state = node_handle.advertise<sensor_msgs::JointState>("st_arm/joint_states", 100);
     pub_joint_state_deg = node_handle.advertise<sensor_msgs::JointState>("st_arm/joint_states_deg", 100);
     pub_joint_state_ik = node_handle.advertise<sensor_msgs::JointState>("st_arm/joint_states_ik", 100);
-    sub_mode_selector = node_handle.subscribe("st_arm/mode_selector", 10, &gazebo::STArmPlugin::SwitchMode, this); 
-    sub_gain_p_task_space = node_handle.subscribe("st_arm/TS_Kp", 10, &gazebo::STArmPlugin::SwitchGainTaskSpaceP, this); 
-    sub_gain_w_task_space = node_handle.subscribe("st_arm/TS_Kw", 10, &gazebo::STArmPlugin::SwitchGainTaskSpaceW, this); 
-    sub_gain_p_joint_space = node_handle.subscribe("st_arm/JS_Kp", 10, &gazebo::STArmPlugin::SwitchGainJointSpaceP, this); 
-    sub_gain_d_joint_space = node_handle.subscribe("st_arm/JS_Kd", 10, &gazebo::STArmPlugin::SwitchGainJointSpaceD, this); 
-    sub_gain_r = node_handle.subscribe("st_arm/JS_Kr", 10, &gazebo::STArmPlugin::SwitchGainR, this); 
+    sub_mode_selector = node_handle.subscribe("st_arm/mode_selector", 100, &gazebo::STArmPlugin::SwitchMode, this); 
+    sub_gain_p_task_space = node_handle.subscribe("st_arm/TS_Kp", 100, &gazebo::STArmPlugin::SwitchGainTaskSpaceP, this); 
+    sub_gain_w_task_space = node_handle.subscribe("st_arm/TS_Kw", 100, &gazebo::STArmPlugin::SwitchGainTaskSpaceW, this); 
+    sub_gain_p_joint_space = node_handle.subscribe("st_arm/JS_Kp", 100, &gazebo::STArmPlugin::SwitchGainJointSpaceP, this); 
+    sub_gain_d_joint_space = node_handle.subscribe("st_arm/JS_Kd", 100, &gazebo::STArmPlugin::SwitchGainJointSpaceD, this); 
+    sub_gain_r = node_handle.subscribe("st_arm/JS_Kr", 100, &gazebo::STArmPlugin::SwitchGainR, this); 
     
-    sub_gripper_state = node_handle.subscribe("unity/gripper_state", 10, &gazebo::STArmPlugin::GripperStateCallback, this);
-    sub_hmd_pose = node_handle.subscribe("unity/hmd_pose", 1, &gazebo::STArmPlugin::HMDPoseCallback, this);
+    sub_gripper_state = node_handle.subscribe("unity/gripper_state", 100, &gazebo::STArmPlugin::GripperStateCallback, this);
+    sub_hmd_pose = node_handle.subscribe("unity/virtual_box_pose", 100, &gazebo::STArmPlugin::HMDPoseCallback, this);
 
-    sub_rbq3_motion_switch = node_handle.subscribe("rbq3/motion_switch", 10, &gazebo::STArmPlugin::SwitchModeRBQ3, this);
+    sub_rbq3_motion_switch = node_handle.subscribe("rbq3/motion_switch", 100, &gazebo::STArmPlugin::SwitchModeRBQ3, this);
 
     pub_ee_pose = node_handle.advertise<geometry_msgs::TransformStamped>("st_arm/ee_pose", 10);
     pub_ref_ee_pose = node_handle.advertise<geometry_msgs::TransformStamped>("st_arm/ref_ee_pose", 10);
-    //pub_gazebo_camera = node_handle.advertise<sensor_msgs::Image>("st_arm/gazebocamera", 60);  //++
-//    sub_gripper_activation = node_handle.subscribe("unity/gripper_activation", 1, &gazebo::STArmPlugin::GripperActivationCallback, this);  //++
   
     pub_rbq3_joint_state = node_handle.advertise<sensor_msgs::JointState>("rbq3/joint_states", 200);
+    pub_weight_est_pose_difference = node_handle.advertise<std_msgs::Float32MultiArray>("st_arm/pose_difference", 100);
+    pub_weight_est_estimated_obj_weight = node_handle.advertise<std_msgs::Float32>("st_arm/estimated_obj_weight", 100);
   }
 
 
   void STArmPlugin::InitializeRBDLVariables()
   {
-    std::cout << "Before Check RBDL API VERSION" << std::endl;
     rbdl_check_api_version(RBDL_API_VERSION);
     std::cout << "Checked RBDL API VERSION" << std::endl;
 
@@ -176,6 +175,7 @@ namespace gazebo
     SetRBDLVariables();
     ROSMsgPublish();
     PostureGeneration();  
+    GripperControl();
     SetJointTorque();
     if(is_move_rbq3)
     {
@@ -235,13 +235,14 @@ namespace gazebo
     sensor_msgs::JointState joint_state_msg;
     
     joint_state_msg.header.stamp = ros::Time::now();
-    for (uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    for (uint8_t i=0; i<6; i++)
     {
       joint_state_msg.name.push_back((std::string)joint_names.at(i));
       joint_state_msg.position.push_back((float)(th[i]));
       joint_state_msg.velocity.push_back((float)(th_dot[i]));
       joint_state_msg.effort.push_back((float)joint_torque[i]);
     }
+    joint_state_msg.position.push_back(Map(th[6], -0.03, 0, 0, 2));
     pub_joint_state.publish(joint_state_msg); 
 
     // joint_state_msg.header.stamp = ros::Time::now();
@@ -300,6 +301,13 @@ namespace gazebo
       rbq3_joint_state_msg.effort.push_back((float)quad_joint_torque[i]);
     }
     pub_rbq3_joint_state.publish(rbq3_joint_state_msg); 
+
+    std_msgs::Float32MultiArray weight_est_pose_difference_msg;
+    for (uint8_t i=0; i<pose_difference.size(); i++)
+    {
+      weight_est_pose_difference_msg.data.push_back(pose_difference(i));
+    }
+    pub_weight_est_pose_difference.publish(weight_est_pose_difference_msg);
   }
 
 
@@ -311,6 +319,7 @@ namespace gazebo
     else if (control_mode == Motion_3) Motion3();
     else if (control_mode == Motion_4) Motion4();
     else if (control_mode == Motion_5) Motion5();
+    else if (control_mode == Motion_6) Motion6();
     else Idle();
   }
 
@@ -337,15 +346,17 @@ namespace gazebo
     else if (msg -> data == 3) control_mode = Motion_3;  
     else if (msg -> data == 4) control_mode = Motion_4; 
     else if (msg -> data == 5) control_mode = Motion_5;   
+    else if (msg -> data == 6) control_mode = Motion_6;   
     else                       control_mode = IDLE;    
   }
 
 
   void STArmPlugin::Idle()
   {
-    gain_p_joint_space_idle << 200, 200, 200, 100, 1000, 100, 35, 35;
+    gain_p_joint_space_idle << 200, 200, 200, 100, 100, 100, 35, 35;
     // gain_d_joint_space_idle << 20, 20, 20, 10, 10, 10, 3, 3;
-    gain_d_joint_space_idle << 1, 1, 1, 1, 1, 1, 1, 1;
+    // gain_d_joint_space_idle << 1, 1, 1, 1, 1, 1, 1, 1;
+    gain_d_joint_space_idle << 0, 0, 0, 0, 0, 0, 0, 0;
     // gain_d_joint_space_idle = gain_p_joint_space_idle * 0.1;
     step_time = 4; 
     
@@ -360,13 +371,13 @@ namespace gazebo
       ref_th[3] = -30 * trajectory * DEG2RAD;
       ref_th[4] =   0 * trajectory * DEG2RAD;
       ref_th[5] =   0 * trajectory * DEG2RAD;
-      ref_th[6] =  -0.03 * trajectory;
-      ref_th[7] =  -0.03 * trajectory;
+      //ref_th[6] =  -0.03 * trajectory;
+      //ref_th[7] =  -0.03 * trajectory;
     }
 
     // joint_torque = gain_p_joint_space_idle * (ref_th - th) - gain_d_joint_space_idle * th_dot;
 
-    for (uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    for (uint8_t i=0; i<6; i++)
     {
       joint_torque[i] = gain_p_joint_space_idle[i] * (ref_th[i] - th[i]) - gain_d_joint_space_idle[i] * th_dot[i];
     }
@@ -883,6 +894,154 @@ namespace gazebo
     cnt++;
   }
 
+  //  Weight estimation
+  void STArmPlugin::Motion6()
+  {
+    // gain_p << 2000, 200, 200;
+    // gain_w << 10, 10, 10;
+    // gain_r << 1, 1, 1, 1, 1, 1; //adjust GC intensity
+
+    step_time = 3;
+    
+    cnt_time = cnt*inner_dt;   
+
+    gain_p = gain_p_task_space;
+    gain_w = gain_w_task_space; 
+    gain_r << 1, 1, 1, 1, 1, 1; //adjust GC intensity
+
+    threshold << 0.2, 0.1, 0.1, 0.1, 0.1, 0.1; 
+    joint_limit << 3.14,     0,  2.8,  1.87,  1.57,  1.57,
+                    -3.14, -3.14, -0.3, -1.27, -1.57, -1.57;
+
+    A0 << 1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1;
+    A1 << cos(th[0]), 0, -sin(th[0]), 0,
+          sin(th[0]), 0, cos(th[0]), 0,
+          0, -1, 0, L1,
+          0, 0, 0, 1;
+    A2 << cos(th[1]), -sin(th[1]), 0, L2*cos(th[1]),
+          sin(th[1]), cos(th[1]), 0, L2*sin(th[1]),
+          0, 0, 1, 0, 
+          0, 0, 0, 1;
+    A3 << cos(th[2]), -sin(th[2]), 0, L3*cos(th[2]), 
+          sin(th[2]), cos(th[2]), 0, L3*sin(th[2]), 
+          0, 0, 1, 0,
+          0, 0, 0, 1;
+    A4 << sin(th[3]), 0, cos(th[3]), 0,
+          -cos(th[3]), 0, sin(th[3]), 0,
+          0, -1, 0, 0,
+          0, 0, 0, 1;
+    A5 << -sin(th[4]), 0, cos(th[4]), 0,
+          cos(th[4]), 0, sin(th[4]), 0,
+          0, 1, 0, L5,
+          0, 0, 0, 1;
+    A6 << -sin(th[5]), -cos(th[5]), 0, -L6*sin(th[5]),
+          cos(th[5]), -sin(th[5]), 0, L6*cos(th[5]),
+          0, 0, 1, 0, 
+          0, 0, 0, 1;          
+          
+    T00 = A0;
+    T01 = T00*A1;
+    T02 = T01*A2;
+    T03 = T02*A3;
+    T04 = T03*A4;
+    T05 = T04*A5;
+    T06 = T05*A6;
+  
+    a0 << T00(0,2), T00(1,2), T00(2,2);
+    a1 << T01(0,2), T01(1,2), T01(2,2);
+    a2 << T02(0,2), T02(1,2), T02(2,2);
+    a3 << T03(0,2), T03(1,2), T03(2,2);
+    a4 << T04(0,2), T04(1,2), T04(2,2);
+    a5 << T05(0,2), T05(1,2), T05(2,2);
+
+    P6_P0 << T06(0,3)-T00(0,3), T06(1,3)-T00(1,3), T06(2,3)-T00(2,3);
+    P6_P1 << T06(0,3)-T01(0,3), T06(1,3)-T01(1,3), T06(2,3)-T01(2,3);
+    P6_P2 << T06(0,3)-T02(0,3), T06(1,3)-T02(1,3), T06(2,3)-T02(2,3);
+    P6_P3 << T06(0,3)-T03(0,3), T06(1,3)-T03(1,3), T06(2,3)-T03(2,3);
+    P6_P4 << T06(0,3)-T04(0,3), T06(1,3)-T04(1,3), T06(2,3)-T04(2,3);
+    P6_P5 << T06(0,3)-T05(0,3), T06(1,3)-T05(1,3), T06(2,3)-T05(2,3);
+
+    J1 << a0.cross(P6_P0), a0;
+    J2 << a1.cross(P6_P1), a1;
+    J3 << a2.cross(P6_P2), a2;
+    J4 << a3.cross(P6_P3), a3;
+    J5 << a4.cross(P6_P4), a4;
+    J6 << a5.cross(P6_P5), a5;
+
+    Jacobian << J1, J2, J3, J4, J5, J6;
+
+    ee_position << T06(0,3), T06(1,3), T06(2,3);
+    
+    // if (cnt<1) initial_ee_position << ee_position(0), ee_position(1), ee_position(2);
+    if (cnt<1) initial_ee_position << 0.4, 0, 0.3;
+
+    if(cnt_time <= step_time*5)
+    { 
+      ref_ee_position(0) = initial_ee_position(0) - 0.2*abs(sin(PI/2*(cnt_time/step_time)));
+      ref_ee_position(1) = initial_ee_position(1) - 0.3*sin(PI/2*(cnt_time/step_time));
+      ref_ee_position(2) = initial_ee_position(2) + 0.2*sin(PI*(cnt_time/step_time));
+      ref_ee_quaternion.w() = 1;
+      ref_ee_quaternion.x() = 0;
+      ref_ee_quaternion.y() = 0;
+      ref_ee_quaternion.z() = 0;
+    }
+
+    ee_position_error(0) =  ref_ee_position(0) - ee_position(0);
+    ee_position_error(1) =  ref_ee_position(1) - ee_position(1);
+    ee_position_error(2) =  ref_ee_position(2) - ee_position(2);
+
+    ee_force << gain_p(0) * ee_position_error(0), 
+                gain_p(1) * ee_position_error(1), 
+                gain_p(2) * ee_position_error(2);
+
+    ee_rotation = T06.block<3,3>(0,0);
+    ee_rotation_x = ee_rotation.block<3,1>(0,0); 
+    ee_rotation_y = ee_rotation.block<3,1>(0,1); 
+    ee_rotation_z = ee_rotation.block<3,1>(0,2);
+
+    ref_ee_rotation = ref_ee_quaternion.normalized().toRotationMatrix();
+
+    ref_ee_rotation_x = ref_ee_rotation.block<3,1>(0,0);
+    ref_ee_rotation_y = ref_ee_rotation.block<3,1>(0,1);
+    ref_ee_rotation_z = ref_ee_rotation.block<3,1>(0,2);
+    ee_orientation_error = ee_rotation_x.cross(ref_ee_rotation_x) + ee_rotation_y.cross(ref_ee_rotation_y) + ee_rotation_z.cross(ref_ee_rotation_z);
+    ee_momentum << gain_w(0) * ee_orientation_error(0), gain_w(1) * ee_orientation_error(1), gain_w(2) * ee_orientation_error(2);
+
+    pose_difference << ee_position_error(0), ee_position_error(1), ee_position_error(2), ee_orientation_error(0), ee_orientation_error(1), ee_orientation_error(2);
+
+    virtual_spring << ee_force(0), ee_force(1), ee_force(2), ee_momentum(0), ee_momentum(1), ee_momentum(2);
+  
+    RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
+    for(uint8_t i = 0; i < 6; i++)
+    {
+      tau_rbdl(i) = arm_rbdl.tau(i);
+    }
+
+    tau = Jacobian.transpose() * virtual_spring;
+
+    for(uint8_t i=0; i<6; i++) 
+    {
+      tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot[i]; 
+      tau_gravity_compensation[i] = tau_rbdl[i] * gain_r[i];
+    }
+
+    for(uint8_t i=0; i<6; i++){
+      if(th(i) > joint_limit(0,i) - threshold(i) && tau(i) > 0 || th(i) < joint_limit(1,i) + threshold(i) && tau(i) < 0)
+      {
+        joint_torque[i] = tau_gravity_compensation[i] - tau_viscous_damping[i];
+      }
+      else
+      {
+        joint_torque[i] = tau_gravity_compensation[i] - tau_viscous_damping[i] + tau[i]; 
+      } 
+    }
+
+    cnt++;
+  }
+
 
   void STArmPlugin::HMDPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
   {
@@ -955,7 +1114,32 @@ namespace gazebo
 
   void STArmPlugin::GripperStateCallback(const std_msgs::Float32ConstPtr &msg)
   {
-    float ref_gripper_state = msg->data;
+    // float ref_gripper_state = msg->data;
+    float ref_gripper_state = Map(msg->data, 0, 2, -0.03, 0);
+    
+    for (uint8_t i=6; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    {
+      ref_th[i] = ref_gripper_state;
+    }
+  }
+
+
+  void STArmPlugin::GripperControl()
+  {
+    gain_p_joint_space[6] = 10; 
+    gain_p_joint_space[7] = 10; 
+    gain_d_joint_space[6] = 1; 
+    gain_d_joint_space[7] = 1; 
+    for (uint8_t i=6; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    {
+      joint_torque[i] = gain_p_joint_space[i] * (ref_th[i] - th[i]) - gain_d_joint_space[i] * th_dot[i];
+    }
+  }
+
+
+  float STArmPlugin::Map(float x, float in_min, float in_max, float out_min, float out_max)
+  {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   }
 
 
@@ -1001,8 +1185,8 @@ namespace gazebo
     amplitude << 1, 1, 1;
     horizontal_translation << 0, 1, 0;
     vertical_translation << 0, 0, 0;
-    rbq3_base_range_of_motion << 5, 5, 5;
-    // rbq3_base_range_of_motion << 0, 0, 0;
+    // rbq3_base_range_of_motion << 15, 15, 15;
+    rbq3_base_range_of_motion << 0, 0, 0;
 
     for(uint8_t i=0; i<3; i++)
     {
