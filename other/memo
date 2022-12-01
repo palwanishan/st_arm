@@ -14,3 +14,13 @@ export ROS_HOSTNAME=192.168.0.18
 alias nvidia_master='export ROS_MASTER_URI=http://192.168.0.8:11311'
 alias up2_master='export ROS_MASTER_URI=http://192.168.0.15:11311'
 alias self_master='export ROS_MASTER_URI=http://192.168.0.18:11311'
+
+
+
+#// for enabling collada in freecad ubuntu
+
+#sudo pip install pycollada
+
+#sudo apt install netgen
+
+#sudo ln -s /usr/lib/x86_64-linux-gnu/netgen/*.so /usr/lib/
