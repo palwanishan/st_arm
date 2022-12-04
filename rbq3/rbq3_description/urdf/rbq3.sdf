@@ -1,11 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <sdf version='1.7'>
   <model name='rbq3'>
+    <self_collide>true</self_collide>
+    <!--
+    <joint name='world_joint' type='fixed'>
+      <child>robot_world</child>
+      <parent>world</parent>
+    </joint>
+    -->
+    <!---->
+    <joint name='world_joint' type='prismatic'>
+      <child>robot_world</child>
+      <parent>world</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>100</damping>
+          <friction>100</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+      </axis>
+    </joint>
+    
+    <link name='robot_world'>
+    </link>
 
     <joint name='rbq3_base_joint' type='universal'>
       <!-- <pose relative_to='world'>0 0 0.5 0 0 0</pose> -->
       <child>trunk</child>
-      <parent>world</parent>
+      <parent>robot_world</parent>
       <axis>
         <xyz>1 0 0</xyz>
         <dynamics>
@@ -862,7 +886,6 @@
     </link>
 
 
-
     <joint name='manipulator_base_joint' type='fixed'>
       <pose relative_to='trunk'>0.15 0 0.05 0 0 0</pose>
       <child>manipulator_base_link</child>
@@ -880,6 +903,7 @@
         <use_parent_model_frame>1</use_parent_model_frame>
       </axis>
     </joint>
+    
     <link name='manipulator_base_link'>
       <pose relative_to='manipulator_base_joint'>0 0 0 0 0 0</pose>
       <!-- <pose>0.15 0 0.05 0 0 0</pose> -->
@@ -1014,6 +1038,7 @@
       </sensor>
       -->
     </link>
+    
     <joint name='shoulder_yaw_joint' type='revolute'>
       <pose relative_to='manipulator_base_link'>0 0 0 0 -0 0</pose>
       <parent>manipulator_base_link</parent>
@@ -1034,6 +1059,7 @@
         </dynamics>
       </axis>
     </joint>
+    
     <link name='shoulder_yaw_link'>
       <pose relative_to='shoulder_yaw_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -1061,6 +1087,7 @@
         </material>
       </visual>
     </link>
+    
     <joint name='shoulder_pitch_joint' type='revolute'>
       <pose relative_to='shoulder_yaw_link'>0 0 0.1019 0 -0 0</pose>
       <parent>shoulder_yaw_link</parent>
@@ -1081,6 +1108,7 @@
         </dynamics>
       </axis>
     </joint>
+    
     <link name='shoulder_pitch_link'>
       <pose relative_to='shoulder_pitch_joint'>0 0 0 0 -0 0</pose>
       <inertial>
@@ -1457,7 +1485,7 @@
         </inertia>
       </inertial>
       
-      <!--
+      <!---->
       <collision name='gripper_left_link_collision'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1467,7 +1495,7 @@
           </mesh>
         </geometry>
       </collision>
-      -->
+      
 
       <visual name='gripper_left_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
@@ -1535,7 +1563,7 @@
         </inertia>
       </inertial>
       
-      <!--
+      <!---->
       <collision name='gripper_right_link_collision'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1545,7 +1573,7 @@
           </mesh>
         </geometry>
       </collision>
-      -->
+      
 
 
       <visual name='gripper_right_link_visual'>
@@ -1560,9 +1588,7 @@
           <ambient>1 0 0 1</ambient>
         </material>
       </visual>
-    </link>
-
-    
+    </link>    
 
   </model>
 </sdf>

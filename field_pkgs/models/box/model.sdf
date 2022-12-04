@@ -75,7 +75,7 @@
   </joint>
   
   <link name='peg_link'><!---->
-    <pose relative_to='world'>0.5 -0.1 0.4 0 0 0</pose>
+    <pose relative_to='world'>0.5 -0.1 0.255 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
       <mass>1</mass>
@@ -114,7 +114,7 @@
 
   
   <link name='square_link'><!---->
-    <pose relative_to='world'>0.52 0 0.56 0 0 0</pose>
+    <pose relative_to='world'>0.52 0 0.3 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
       <mass>0.017</mass>
@@ -153,7 +153,7 @@
   </link>
 
   <link name='sphere_link'><!---->
-    <pose relative_to='world'>0.52 0 0.53 0 0 0</pose>
+    <pose relative_to='world'>0.52 0 0.3 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
       <mass>0.017</mass>
@@ -192,7 +192,7 @@
   </link>
 
   <link name='triange_link'><!---->
-    <pose relative_to='world'>0.52 0 0.5 0 0 0</pose>
+    <pose relative_to='world'>0.52 0 0.3 0 0 0</pose>
     <inertial>
       <pose relative_to='triange_link'>0 0 0 0 -0 0</pose>
       <mass>0.017</mass>
@@ -236,8 +236,8 @@
     </joint>
 
 
-    <link name='desk_link'>
-    <pose relative_to='world'>0.6 0 0.4 0 0 0</pose>
+  <link name='desk_link'>
+    <pose relative_to='world'>0.6 0 0.25 0 0 0</pose>
     
     <!--
     <collision name='desk_link_collision'>
@@ -273,6 +273,280 @@
       </material>
     </visual>
   </link>
+
+  <!--
+  <link name='dumpbell_link'>
+    <pose relative_to='world'>1.6 0 0.5 0 0 0</pose>
+    
+    <collision name ='dumpbell_link_collision'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <size>0.04 0.04 0.1</size>
+        </cylinder>
+      </geometry>
+    </collision>
+    
+    <visual name ='dumpbell_link_collision'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <size>0.04 0.04 0.1</size>
+        </cylinder>
+      </geometry>
+    </visual>
+  </link>
+  -->
+
+  <link name='dumpbell_0.5'>
+    <pose relative_to='world'>0.6 0.2 0.35 0 0 0</pose>
+
+    <inertial>
+      <pose>0 0 0 0 0 0</pose>
+      <mass>0.5</mass>
+      <inertia>
+        <ixx>0.00125879</ixx>
+        <ixy>1.394e-08</ixy>      <iyy>0.00126646</iyy>
+        <ixz>-1.34976e-06</ixz>   <iyz>-1.00471e-05</iyz>   <izz>2.07785e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <visual name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>1 0 0 1</ambient>  <!-- red -->
+      </material>
+    </visual>
+    
+    <visual name='dumpbell_visual_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+      </material>
+    </visual>
+
+    <visual name='dumpbell_visual_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+      </material>
+    </visual>
+  </link>
+  
+  <link name='dumpbell_0.25'>
+    <pose relative_to='world'>0.6 -0.2 0.35 0 0 0</pose>
+
+    <inertial>
+      <pose>0 0 0 0 0 0</pose>
+      <mass>0.25</mass>
+      <inertia>
+        <ixx>0.00125879</ixx>
+        <ixy>1.394e-08</ixy>      <iyy>0.00126646</iyy>
+        <ixz>-1.34976e-06</ixz>   <iyz>-1.00471e-05</iyz>   <izz>2.07785e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <visual name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0 1 0 1</ambient>  <!-- red -->
+      </material>
+    </visual>
+    
+    <visual name='dumpbell_visual_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+      </material>
+    </visual>
+
+    <visual name='dumpbell_visual_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+      </material>
+    </visual>
+  </link>
+  
+  <link name='dumpbell_0.75'>
+    <pose relative_to='world'>0.5 0.2 0.35 0 0 0</pose>
+
+    <inertial>
+      <pose>0 0 0 0 0 0</pose>
+      <mass>0.75</mass>
+      <inertia>
+        <ixx>0.00125879</ixx>
+        <ixy>1.394e-08</ixy>      <iyy>0.00126646</iyy>
+        <ixz>-1.34976e-06</ixz>   <iyz>-1.00471e-05</iyz>   <izz>2.07785e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <visual name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0 0 1 1</ambient>  <!-- red -->
+      </material>
+    </visual>
+    
+    <visual name='dumpbell_visual_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+      </material>
+    </visual>
+
+    <visual name='dumpbell_visual_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+      </material>
+    </visual>
+  </link>
+
 
 </model>
 

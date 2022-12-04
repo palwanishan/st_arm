@@ -68,19 +68,21 @@ using RBDLJoint = RBDL::Joint;
 
 #define NUM_OF_JOINTS_WITH_TOOL 8
 #define NUM_OF_JOINTS_WITHOUT_TOOL 6
+#define JOINT_VEL_LIMIT 100
 
 #define PI 3.14159265358979
 #define M2R 2*PI/4096
 #define DEG2RAD		0.017453292519943
 #define RAD2DEG		57.295779513082323
-#define G 9.81;
+#define G -9.81;
 
-#define L1 0.16
+#define L1 0.1019
 #define L2 0.25
 #define L3 0.25
 #define L4 0.00
-#define L5 0.10
-#define L6 0.06
+#define L5 0.1045
+#define L6 0.135
+// #define L6 0.06
 
 #define m_Link1 0.573
 #define m_Link2 0.729
@@ -99,16 +101,28 @@ using RBDLJoint = RBDL::Joint;
 #define inner_dt 0.001
 
 
+// typedef struct
+// {
+//   RBDLModel* rbdl_model;
+//   RBDLVectorNd q, q_dot, q_d_dot, tau;
+//   RBDLMatrixNd jacobian, jacobian_prev, jacobian_dot, jacobian_inverse;
+
+//   unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id;                               //id have information of the body
+//   RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link;
+//   RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint;
+//   RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia; //Inertia of links
+// } Arm_RBDL;
+
 typedef struct
 {
   RBDLModel* rbdl_model;
   RBDLVectorNd q, q_dot, q_d_dot, tau;
   RBDLMatrixNd jacobian, jacobian_prev, jacobian_dot, jacobian_inverse;
 
-  unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id;                               //id have information of the body
-  RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link;
-  RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint;
-  RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia; //Inertia of links
+  unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id, gripper_id;                        //id have information of the body
+  RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link, gripper_link;
+  RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint, gripper_joint;
+  RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia, gripper_inertia; //Inertia of links
 } Arm_RBDL;
 
 Arm_RBDL arm_rbdl;
@@ -148,6 +162,7 @@ namespace gazebo
     const std::vector<std::string> rbq3_joint_names = {"HRR", "HRP", "HRK", "HLR", "HLP", "HLK", "FRR", "FRP", "FRK", "FLR", "FLP", "FLK"};
 
     VectorXd quad_th = VectorXd::Zero(12);
+    VectorXd quad_last_th = VectorXd::Zero(12);
     VectorXd quad_th_dot = VectorXd::Zero(12);
     VectorXd quad_joint_torque = VectorXd::Zero(12);
     VectorXd quad_th_ref = VectorXd::Zero(12);
@@ -177,9 +192,11 @@ namespace gazebo
     Vector3d position_difference = VectorXd::Zero(3);
     float position_difference_magnitude;
     float force_magnitude;
-    float estimated_object_weight;
+    float estimated_object_weight{0};
+    float estimated_object_weight_difference{0};
+    float last_estimated_object_weight{0};
     float real_object_weight;
-    bool is_start_estimation;
+    bool is_start_estimation{false};
 
     ros::Publisher pub_weight_est_pose_difference;
     ros::Publisher pub_weight_est_estimated_obj_weight;
@@ -187,6 +204,7 @@ namespace gazebo
     ros::Subscriber sub_weight_est_start_estimation;
 
     void EstimateObjectWeight();
+    void SwitchOnAddingEstimatedObjWeightToRBDL(const std_msgs::Int32Ptr & msg);
 
 
     //*************** Trajectory Variables**************//
@@ -337,6 +355,7 @@ namespace gazebo
 
     void SetRBDLVariables();
     void InitializeRBDLVariables();
+    void InitializeRBDLVariablesWithObj(float);
 
     void GetJointPosition();
     void GetJointVelocity();

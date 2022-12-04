@@ -10,7 +10,8 @@ namespace gazebo
     GetSensors();
     InitROSPubSetting();
     std::cout << "Before Calling RBDL Initialize function" << std::endl;
-    InitializeRBDLVariables();
+    // InitializeRBDLVariables();
+    InitializeRBDLVariablesWithObj(0);
     this->last_update_time = this->model->GetWorld()->SimTime();
     this->update_connection = event::Events::ConnectWorldUpdateBegin(boost::bind(&STArmPlugin::Loop, this));
     
@@ -81,6 +82,7 @@ namespace gazebo
     pub_rbq3_joint_state = node_handle.advertise<sensor_msgs::JointState>("rbq3/joint_states", 200);
     pub_weight_est_pose_difference = node_handle.advertise<std_msgs::Float32MultiArray>("st_arm/pose_difference", 100);
     pub_weight_est_estimated_obj_weight = node_handle.advertise<std_msgs::Float32>("st_arm/estimated_obj_weight", 100);
+    sub_weight_est_start_estimation = node_handle.subscribe("st_arm/start_obj_weight_est", 100, &gazebo::STArmPlugin::SwitchOnAddingEstimatedObjWeightToRBDL, this);
   }
 
 
@@ -162,6 +164,92 @@ namespace gazebo
   }
 
 
+  void STArmPlugin::InitializeRBDLVariablesWithObj(float a_obj_weight)
+  {
+    rbdl_check_api_version(RBDL_API_VERSION);
+    std::cout << "Checked RBDL API VERSION" << std::endl;
+
+    arm_rbdl.rbdl_model = new RBDLModel();
+    arm_rbdl.rbdl_model->gravity = RBDL::Math::Vector3d(0.0, 0.0, -9.81);
+
+    arm_rbdl.base_inertia = RBDLMatrix3d(0.00033, 0,        0,
+                                         0,       0.00034,  0,
+                                         0,       0,        0.00056);
+
+    arm_rbdl.shoulder_yaw_inertia = RBDLMatrix3d( 0.00024,  0,        0,
+                                                  0,        0.00040,  0,
+                                                  0,        0,        0.00026);
+
+    arm_rbdl.shoulder_pitch_inertia = RBDLMatrix3d(0.00028, 0,        0,
+                                                   0,       0.00064,  0,
+                                                   0,       0,        0.00048);
+
+    arm_rbdl.elbow_pitch_inertia = RBDLMatrix3d(0.00003,  0,        0,
+                                                0,        0.00019,  0,
+                                                0,        0,        0.00020);
+
+    arm_rbdl.wrist_pitch_inertia = RBDLMatrix3d(0.00002,  0,        0,
+                                                0,        0.00002,  0,
+                                                0,        0,        0.00001);
+
+    arm_rbdl.wrist_roll_inertia = RBDLMatrix3d(0.00001,  0,        0,
+                                                0,        0.00002,  0,
+                                                0,        0,        0.00001);
+
+    arm_rbdl.wrist_yaw_inertia = RBDLMatrix3d(0.00006,  0,        0,
+                                                0,        0.00003,  0,
+                                                0,        0,        0.00005);
+
+    arm_rbdl.gripper_inertia = RBDLMatrix3d(0.00001,  0,        0,
+                                                0,        0.00001,  0,
+                                                0,        0,        0.00001);
+
+    // arm_rbdl.base_link = RBDLBody(0.59468, RBDLVector3d(0, 0.00033, 0.03107), arm_rbdl.base_inertia);
+    // arm_rbdl.base_joint = RBDLJoint(RBDL::JointType::JointTypeFixed, RBDLVector3d(0,0,0));
+    // arm_rbdl.base_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.base_joint, arm_rbdl.base_link);
+
+    arm_rbdl.shoulder_yaw_link = RBDLBody(0.55230, RBDLVector3d(0.00007, -0.00199, 0.09998), arm_rbdl.shoulder_yaw_inertia);
+    arm_rbdl.shoulder_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
+    arm_rbdl.shoulder_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.shoulder_yaw_joint, arm_rbdl.shoulder_yaw_link);
+
+    arm_rbdl.shoulder_pitch_link = RBDLBody(0.65326, RBDLVector3d(0.22204, 0.04573, 0), arm_rbdl.shoulder_pitch_inertia);
+    arm_rbdl.shoulder_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+    arm_rbdl.shoulder_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(1, RBDL::Math::Xtrans(RBDLVector3d(0, 0, 0.1019)), arm_rbdl.shoulder_pitch_joint, arm_rbdl.shoulder_pitch_link);
+
+    arm_rbdl.elbow_pitch_link = RBDLBody(0.17029, RBDLVector3d(0.17044, 0.00120, 0.00004), arm_rbdl.elbow_pitch_inertia);
+    arm_rbdl.elbow_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+    arm_rbdl.elbow_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(2, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.elbow_pitch_joint, arm_rbdl.elbow_pitch_link);
+
+    arm_rbdl.wrist_pitch_link = RBDLBody(0.09234, RBDLVector3d(0.04278, 0, 0.01132), arm_rbdl.wrist_pitch_inertia);
+    arm_rbdl.wrist_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+    arm_rbdl.wrist_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(3, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.wrist_pitch_joint, arm_rbdl.wrist_pitch_link);
+
+    arm_rbdl.wrist_roll_link = RBDLBody(0.08696, RBDLVector3d(0.09137, 0, 0.00036), arm_rbdl.wrist_roll_inertia);
+    arm_rbdl.wrist_roll_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(1,0,0));
+    arm_rbdl.wrist_roll_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(4, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.wrist_roll_joint, arm_rbdl.wrist_roll_link);
+
+    arm_rbdl.wrist_yaw_link = RBDLBody(0.14876, RBDLVector3d(0.05210, 0.00034, 0.02218), arm_rbdl.wrist_yaw_inertia);
+    arm_rbdl.wrist_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
+    arm_rbdl.wrist_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(5, RBDL::Math::Xtrans(RBDLVector3d(0.1045,0,0)), arm_rbdl.wrist_yaw_joint, arm_rbdl.wrist_yaw_link);
+
+    arm_rbdl.gripper_link = RBDLBody(a_obj_weight, RBDLVector3d(0.0, 0.0, 0.0), arm_rbdl.gripper_inertia);
+    arm_rbdl.gripper_joint = RBDLJoint(RBDL::JointType::JointTypeFixed);
+    arm_rbdl.gripper_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(6, RBDL::Math::Xtrans(RBDLVector3d(0.135,0,0)), arm_rbdl.gripper_joint, arm_rbdl.gripper_link);
+
+    arm_rbdl.q = RBDLVectorNd::Zero(6);
+    arm_rbdl.q_dot = RBDLVectorNd::Zero(6);
+    arm_rbdl.q_d_dot = RBDLVectorNd::Zero(6);
+    arm_rbdl.tau = RBDLVectorNd::Zero(6);
+
+    arm_rbdl.jacobian = RBDLMatrixNd::Zero(6,6);
+    arm_rbdl.jacobian_prev = RBDLMatrixNd::Zero(6,6);
+    arm_rbdl.jacobian_dot = RBDLMatrixNd::Zero(6,6);
+    arm_rbdl.jacobian_inverse = RBDLMatrixNd::Zero(6,6);
+
+    std::cout << "RBDL Initialize function success" << std::endl;
+  }
+
+
   void STArmPlugin::Loop()
   {
     current_time = this->model->GetWorld()->SimTime();
@@ -202,14 +290,27 @@ namespace gazebo
 
   void STArmPlugin::GetJointVelocity()
   {
-    th_dot[0] = this->Joint1->GetVelocity(2);
-    th_dot[1] = this->Joint2->GetVelocity(1);
-    th_dot[2] = this->Joint3->GetVelocity(1);
-    th_dot[3] = this->Joint4->GetVelocity(1);
-    th_dot[4] = this->Joint5->GetVelocity(0);
-    th_dot[5] = this->Joint6->GetVelocity(2);
-    th_dot[6] = this->JointGripperL->GetVelocity(1);
-    th_dot[7] = this->JointGripperR->GetVelocity(1);
+
+    // th_dot[0] = this->Joint1->GetVelocity(2);
+    // th_dot[1] = this->Joint2->GetVelocity(1);
+    // th_dot[2] = this->Joint3->GetVelocity(1);
+    // th_dot[3] = this->Joint4->GetVelocity(1);
+    // th_dot[4] = this->Joint5->GetVelocity(0);
+    // th_dot[5] = this->Joint6->GetVelocity(2);
+    // th_dot[6] = this->JointGripperL->GetVelocity(1);
+    // th_dot[7] = this->JointGripperR->GetVelocity(1);
+
+    
+    for(uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    {
+      if(dt > 0.0005) th_dot[i] = (th[i] - last_th[i]) / dt;
+      last_th[i] = th[i];
+    }
+
+    for(uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    {
+      if(abs(th_dot[i]) > JOINT_VEL_LIMIT) th_dot[i] = 0;
+    }
   }
 
 
@@ -217,6 +318,12 @@ namespace gazebo
   {
     th_d_dot = (th_dot - last_th_dot) / dt;
     last_th_dot = th_dot;
+
+    for(uint8_t i=0; i<NUM_OF_JOINTS_WITH_TOOL; i++)
+    {
+      if(abs(th_d_dot[i]) > JOINT_VEL_LIMIT) th_dot[i] = 0;
+    }
+
   }
 
 
@@ -308,6 +415,10 @@ namespace gazebo
       weight_est_pose_difference_msg.data.push_back(pose_difference(i));
     }
     pub_weight_est_pose_difference.publish(weight_est_pose_difference_msg);
+
+    std_msgs::Float32 weight_est_estimated_object_weight_msg;
+    weight_est_estimated_object_weight_msg.data = estimated_object_weight;
+    pub_weight_est_estimated_obj_weight.publish(weight_est_estimated_object_weight_msg);
   }
 
 
@@ -348,6 +459,13 @@ namespace gazebo
     else if (msg -> data == 5) control_mode = Motion_5;   
     else if (msg -> data == 6) control_mode = Motion_6;   
     else                       control_mode = IDLE;    
+  }
+
+
+  void STArmPlugin::SwitchOnAddingEstimatedObjWeightToRBDL(const std_msgs::Int32Ptr & msg)
+  {
+    if      (msg -> data == 0) is_start_estimation = false;
+    else if (msg -> data == 1) is_start_estimation = true;
   }
 
 
@@ -623,6 +741,7 @@ namespace gazebo
     pre_ee_position = ee_position;
 
     ref_ee_position = hmd_position;
+    ref_ee_rotation = hmd_quaternion.normalized().toRotationMatrix();
 
     ee_force(0) = gain_p(0) * (ref_ee_position(0) - ee_position(0)) - gain_d(0) * ee_velocity(0);
     ee_force(1) = gain_p(1) * (ref_ee_position(1) - ee_position(1)) - gain_d(1) * ee_velocity(1);
@@ -633,7 +752,7 @@ namespace gazebo
     ee_rotation_y = ee_rotation.block<3,1>(0,1); 
     ee_rotation_z = ee_rotation.block<3,1>(0,2);
 
-    ref_ee_rotation = hmd_quaternion.normalized().toRotationMatrix();    
+
 
     ref_ee_rotation_x = ref_ee_rotation.block<3,1>(0,0); 
     ref_ee_rotation_y = ref_ee_rotation.block<3,1>(0,1); 
@@ -976,18 +1095,21 @@ namespace gazebo
     ee_position << T06(0,3), T06(1,3), T06(2,3);
     
     // if (cnt<1) initial_ee_position << ee_position(0), ee_position(1), ee_position(2);
-    if (cnt<1) initial_ee_position << 0.4, 0, 0.3;
-
-    if(cnt_time <= step_time*5)
-    { 
-      ref_ee_position(0) = initial_ee_position(0) - 0.2*abs(sin(PI/2*(cnt_time/step_time)));
-      ref_ee_position(1) = initial_ee_position(1) - 0.3*sin(PI/2*(cnt_time/step_time));
-      ref_ee_position(2) = initial_ee_position(2) + 0.2*sin(PI*(cnt_time/step_time));
-      ref_ee_quaternion.w() = 1;
-      ref_ee_quaternion.x() = 0;
-      ref_ee_quaternion.y() = 0;
-      ref_ee_quaternion.z() = 0;
-    }
+    // if (cnt<1) initial_ee_position << 0.4, 0, 0.3;
+    // if(cnt_time <= step_time*5)
+    // { 
+    //   ref_ee_position(0) = initial_ee_position(0) - 0.2*abs(sin(PI/2*(cnt_time/step_time)));
+    //   ref_ee_position(1) = initial_ee_position(1) - 0.3*sin(PI/2*(cnt_time/step_time));
+    //   ref_ee_position(2) = initial_ee_position(2) + 0.2*sin(PI*(cnt_time/step_time));
+    //   ref_ee_quaternion.w() = 1;
+    //   ref_ee_quaternion.x() = 0;
+    //   ref_ee_quaternion.y() = 0;
+    //   ref_ee_quaternion.z() = 0;
+    // }
+    // ref_ee_rotation = ref_ee_quaternion.normalized().toRotationMatrix();
+    
+    ref_ee_position = hmd_position;
+    ref_ee_rotation = hmd_quaternion.normalized().toRotationMatrix();
 
     ee_position_error(0) =  ref_ee_position(0) - ee_position(0);
     ee_position_error(1) =  ref_ee_position(1) - ee_position(1);
@@ -1002,7 +1124,6 @@ namespace gazebo
     ee_rotation_y = ee_rotation.block<3,1>(0,1); 
     ee_rotation_z = ee_rotation.block<3,1>(0,2);
 
-    ref_ee_rotation = ref_ee_quaternion.normalized().toRotationMatrix();
 
     ref_ee_rotation_x = ref_ee_rotation.block<3,1>(0,0);
     ref_ee_rotation_y = ref_ee_rotation.block<3,1>(0,1);
@@ -1011,6 +1132,21 @@ namespace gazebo
     ee_momentum << gain_w(0) * ee_orientation_error(0), gain_w(1) * ee_orientation_error(1), gain_w(2) * ee_orientation_error(2);
 
     pose_difference << ee_position_error(0), ee_position_error(1), ee_position_error(2), ee_orientation_error(0), ee_orientation_error(1), ee_orientation_error(2);
+
+    estimated_object_weight = ee_force(2) / 9.81;
+    
+    if(is_start_estimation)
+    {
+      estimated_object_weight_difference += estimated_object_weight;
+      InitializeRBDLVariablesWithObj(estimated_object_weight_difference);
+      is_start_estimation = false;
+      std::cout << "RBDL calibrated with obj weight estimation method" << std::endl;
+      std::cout << "estimated_object_weight_difference is: " << estimated_object_weight_difference << std::endl;
+      std::cout << "last_estimated_object_weight is: " << last_estimated_object_weight << std::endl;
+      std::cout << "estimated_object_weight_difference is: " << estimated_object_weight_difference << std::endl;
+      last_estimated_object_weight = estimated_object_weight;
+    }
+    
 
     virtual_spring << ee_force(0), ee_force(1), ee_force(2), ee_momentum(0), ee_momentum(1), ee_momentum(2);
   
@@ -1115,7 +1251,7 @@ namespace gazebo
   void STArmPlugin::GripperStateCallback(const std_msgs::Float32ConstPtr &msg)
   {
     // float ref_gripper_state = msg->data;
-    float ref_gripper_state = Map(msg->data, 0, 2, -0.03, 0);
+    float ref_gripper_state = Map(msg->data, 0, 2.3, -0.03, 0);
     
     for (uint8_t i=6; i<NUM_OF_JOINTS_WITH_TOOL; i++)
     {
@@ -1126,8 +1262,8 @@ namespace gazebo
 
   void STArmPlugin::GripperControl()
   {
-    gain_p_joint_space[6] = 10; 
-    gain_p_joint_space[7] = 10; 
+    gain_p_joint_space[6] = 50; 
+    gain_p_joint_space[7] = 50; 
     gain_d_joint_space[6] = 1; 
     gain_d_joint_space[7] = 1; 
     for (uint8_t i=6; i<NUM_OF_JOINTS_WITH_TOOL; i++)
@@ -1199,15 +1335,15 @@ namespace gazebo
 
     rbq3_base_torque = rbq_base_gain_p * (rbq3_base_rpy_ref - rbq3_base_rpy) - rbq_base_gain_d * rbq3_base_rpy_dot;
 
-    float quad_js_p = 100;
-    float quad_js_d = 0;
+    float quad_js_p = 300;
+    float quad_js_d = 1;
 
     Vector3d rr_q, rl_q, fr_q, fl_q;
 
     Vector3d reference_position_right, reference_position_left;
 
-    reference_position_right << 0, -0.05, -0.3;
-    reference_position_left << 0, 0.05, -0.3;
+    reference_position_right << 0.01, -0.05, -0.3;
+    reference_position_left << 0.01, 0.05, -0.3;
 
     rr_q = GetRBQ3RightIK(reference_position_right);
     fr_q = GetRBQ3RightIK(reference_position_right);
@@ -1350,18 +1486,30 @@ namespace gazebo
 
   void STArmPlugin::GetRBQ3JointVelocity()
   {
-    quad_th_dot[0] = this->HRR->GetVelocity(0);
-    quad_th_dot[1] = this->HRP->GetVelocity(1);
-    quad_th_dot[2] = this->HRK->GetVelocity(1);
-    quad_th_dot[3] = this->HLR->GetVelocity(0);
-    quad_th_dot[4] = this->HLP->GetVelocity(1);
-    quad_th_dot[5] = this->HLK->GetVelocity(1);
-    quad_th_dot[6] = this->FRR->GetVelocity(0);
-    quad_th_dot[7] = this->FRP->GetVelocity(1);
-    quad_th_dot[8] = this->FRK->GetVelocity(1);
-    quad_th_dot[9] = this->FLR->GetVelocity(0);
-    quad_th_dot[10] = this->FLP->GetVelocity(1);
-    quad_th_dot[11] = this->FLK->GetVelocity(1);
+    // quad_th_dot[0] = this->HRR->GetVelocity(0);
+    // quad_th_dot[1] = this->HRP->GetVelocity(1);
+    // quad_th_dot[2] = this->HRK->GetVelocity(1);
+    // quad_th_dot[3] = this->HLR->GetVelocity(0);
+    // quad_th_dot[4] = this->HLP->GetVelocity(1);
+    // quad_th_dot[5] = this->HLK->GetVelocity(1);
+    // quad_th_dot[6] = this->FRR->GetVelocity(0);
+    // quad_th_dot[7] = this->FRP->GetVelocity(1);
+    // quad_th_dot[8] = this->FRK->GetVelocity(1);
+    // quad_th_dot[9] = this->FLR->GetVelocity(0);
+    // quad_th_dot[10] = this->FLP->GetVelocity(1);
+    // quad_th_dot[11] = this->FLK->GetVelocity(1);
+
+    for(uint8_t i=0; i<12; i++)
+    {
+      if(dt > 0.0005) quad_th_dot[i] = (quad_th[i] - quad_last_th[i]) / dt;
+      quad_last_th[i] = quad_th[i];
+    }
+
+    for(uint8_t i=0; i<12; i++)
+    {
+      if(abs(quad_th_dot[i]) > JOINT_VEL_LIMIT) quad_th_dot[i] = 0;
+    }
+    
 
     rbq3_base_rpy_dot[0] = this->rbq3_base_joint->GetVelocity(0);
     rbq3_base_rpy_dot[1] = this->rbq3_base_joint->GetVelocity(1);

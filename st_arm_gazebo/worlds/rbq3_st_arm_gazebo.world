@@ -33,7 +33,7 @@
     <include>
       <uri>model://rbq3_description</uri>
 	    <pose frame="">0 0 0.5 0 0 0</pose>
-      <plugin name="plugin" filename="libst_arm_plugin.so"/>
+      <plugin name="plugin" filename="libst_arm_plugin.so"/><!---->
     </include>
 
     <!-- <include>
