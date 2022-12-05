@@ -82,7 +82,7 @@ namespace gazebo
     pub_rbq3_joint_state = node_handle.advertise<sensor_msgs::JointState>("rbq3/joint_states", 200);
     pub_weight_est_pose_difference = node_handle.advertise<std_msgs::Float32MultiArray>("st_arm/pose_difference", 100);
     pub_weight_est_estimated_obj_weight = node_handle.advertise<std_msgs::Float32>("st_arm/estimated_obj_weight", 100);
-    sub_weight_est_start_estimation = node_handle.subscribe("st_arm/start_obj_weight_est", 100, &gazebo::STArmPlugin::SwitchOnAddingEstimatedObjWeightToRBDL, this);
+    sub_weight_est_start_estimation = node_handle.subscribe("unity/calibrate_obj_weight", 100, &gazebo::STArmPlugin::SwitchOnAddingEstimatedObjWeightToRBDL, this);
   }
 
 
@@ -1028,9 +1028,9 @@ namespace gazebo
     gain_w = gain_w_task_space; 
     gain_r << 1, 1, 1, 1, 1, 1; //adjust GC intensity
 
-    threshold << 0.2, 0.1, 0.1, 0.1, 0.1, 0.1; 
-    joint_limit << 3.14,     0,  2.8,  1.87,  1.57,  1.57,
-                    -3.14, -3.14, -0.3, -1.27, -1.57, -1.57;
+    threshold << 0.2, 0.1, 0.1, 0.01, 0.01, 0.01; 
+    joint_limit << 3.14,     0,  2.8,  1.57,  2.5,  1.57,
+                    -3.14, -3.14, -0.0, -1.57, -2.5, -1.57;
 
     A0 << 1, 0, 0, 0,
           0, 1, 0, 0,
@@ -1262,8 +1262,8 @@ namespace gazebo
 
   void STArmPlugin::GripperControl()
   {
-    gain_p_joint_space[6] = 50; 
-    gain_p_joint_space[7] = 50; 
+    gain_p_joint_space[6] = 100; 
+    gain_p_joint_space[7] = 100; 
     gain_d_joint_space[6] = 1; 
     gain_d_joint_space[7] = 1; 
     for (uint8_t i=6; i<NUM_OF_JOINTS_WITH_TOOL; i++)

@@ -1487,23 +1487,49 @@
       
       <!---->
       <collision name='gripper_left_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
+        <pose>0.0425 0.015 0 0 0 0</pose>
         <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/gripper_left_link.STL</uri>
-          </mesh>
+          <box>
+            <size>0.085 0.03 0.02</size>
+          </box>
         </geometry>
+        
+        <surface>
+          <!--NOTE: Used dynamic friction of clean dry plastic cube on a plastic surface
+          (i.e. Polyethylene) see https://www.engineeringtoolbox.com/friction-coefficients-d_778.html
+          -->
+          <friction>
+            <ode>
+              <mu>1.2</mu>
+              <mu2>1.2</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <collide_bitmask>1</collide_bitmask>
+            <ode>
+              <kp>1e+06</kp>
+              <kd>1e+06</kd>
+              <max_vel>1</max_vel>
+              <min_depth>0.002</min_depth>
+            </ode>
+            <bullet>
+              <kp>1e+06</kp>
+              <kd>1e+06</kd>
+            </bullet>
+          </contact>
+        </surface>
+        
       </collision>
       
 
       <visual name='gripper_left_link_visual'>
+        <!---->
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
             <uri>model://st_arm_description/meshes/stl/gripper_left_link.STL</uri>
-          </mesh>
+          </mesh>          
         </geometry>
         <material>
           <ambient>1 0 0 1</ambient>
@@ -1534,22 +1560,6 @@
 
     <link name='gripper_right_link'>
       <pose relative_to='gripper_right_joint'>0 0 0 0 -0 0</pose>
-
-      <!--
-      <inertial>
-        <pose>0 0 0 0 -0 0</pose>
-        <mass>0.001</mass>
-        <inertia>
-          <ixx>1e-8</ixx>
-          <ixy>1e-8</ixy>
-          <ixz>1e-8</ixz>
-          <iyy>1e-10</iyy>
-          <iyz>1e-10</iyz>
-          <izz>1e-10</izz>
-        </inertia>
-      </inertial>
-      -->
-      <!---->
       <inertial>
         <pose>0.011191 -0.017208 0 0 -0 0</pose>
         <mass>0.0151655</mass>
@@ -1565,17 +1575,40 @@
       
       <!---->
       <collision name='gripper_right_link_collision'>
-        <pose>0 0 0 0 -0 0</pose>
+        <pose>0.0425 -0.015 0 0 0 0</pose>
         <geometry>
-          <mesh>
-            <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/gripper_right_link.STL</uri>
-          </mesh>
+          <box>
+            <size>0.085 0.03 0.02</size>
+          </box>
         </geometry>
+        
+        <surface>
+          <!--NOTE: Used dynamic friction of clean dry plastic cube on a plastic surface
+          (i.e. Polyethylene) see https://www.engineeringtoolbox.com/friction-coefficients-d_778.html
+          -->
+          <friction>
+            <ode>
+              <mu>1.2</mu>
+              <mu2>1.2</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <collide_bitmask>1</collide_bitmask>
+            <ode>
+              <kp>1e+06</kp>
+              <kd>1e+06</kd>
+              <max_vel>1</max_vel>
+              <min_depth>0.002</min_depth>
+            </ode>
+            <bullet>
+              <kp>1e+06</kp>
+              <kd>1e+06</kd>
+            </bullet>
+          </contact>
+        </surface>
+
       </collision>
       
-
-
       <visual name='gripper_right_link_visual'>
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
@@ -1588,7 +1621,15 @@
           <ambient>1 0 0 1</ambient>
         </material>
       </visual>
-    </link>    
+    </link>
+
+    <!--
+    <gripper name='grasping'>
+      <gripper_link>gripper_left_link</gripper_link>
+      <gripper_link>gripper_right_link</gripper_link>
+      <palm_link>wrist_yaw_link</palm_link>
+    </gripper>
+    -->
 
   </model>
 </sdf>

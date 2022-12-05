@@ -74,8 +74,9 @@
     <child>peg_link</child>
   </joint>
   
+
   <link name='peg_link'><!---->
-    <pose relative_to='world'>0.5 -0.1 0.255 0 0 0</pose>
+    <pose relative_to='world'>0.7 0 0.255 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
       <mass>1</mass>
@@ -88,19 +89,22 @@
         <izz>0.000200818</izz>
       </inertia>
     </inertial>    
+
+    <!--
     <visual name='peg_link_visual'>
       <pose>0 0 0 0 -0 0</pose>
       <geometry>
         <mesh>
           <scale>1 1 1</scale>
           <uri>model://experiment_description/meshes/collada/peg_in_hole.dae</uri>
-        </mesh>
+        </mesh>        
       </geometry>
       <material>
         <ambient>0.6 0.3 0.0 1</ambient>
       </material>
     </visual>
-
+    -->
+    <!--
     <collision name='peg_link_collision'>
       <pose>0 0 0 0 0 0</pose>
       <geometry>
@@ -110,11 +114,58 @@
         </mesh>
       </geometry>
     </collision>
+    -->
+
+    <visual name='peg_cylinder_link_visual'>
+      <pose>0.025 0.025 0.1 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.003</radius>
+          <length>0.2</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.6 0.3 0.0 1</ambient>
+      </material>
+    </visual>
+
+    <visual name='peg_box_link_visual'>
+      <pose>0.025 0.025 0.01 0 0 0</pose>
+      <geometry>
+        <box>
+          <size>0.05 0.05 0.02</size>
+        </box>
+      </geometry>
+      <material>
+        <ambient>0.6 0.3 0.0 1</ambient>
+      </material>
+    </visual>
+
+    <collision name='peg_cylinder_link_collision'>
+      <pose>0.025 0.025 0.1 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.003</radius>
+          <length>0.2</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='peg_box_link_collision'>
+      <pose>0.025 0.025 0.01 0 0 0</pose>
+      <geometry>
+        <box>
+          <size>0.05 0.05 0.02</size>
+        </box>
+      </geometry>
+    </collision>
+
+
   </link>
 
   
   <link name='square_link'><!---->
-    <pose relative_to='world'>0.52 0 0.3 0 0 0</pose>
+    <pose relative_to='world'>0.65 0.06 0.3 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
       <mass>0.017</mass>
@@ -136,6 +187,31 @@
           <uri>model://experiment_description/meshes/stl/Square.stl</uri>
         </mesh>
       </geometry>
+
+      <surface>
+        <!--NOTE: Used dynamic friction of clean dry plastic cube on a plastic surface
+        (i.e. Polyethylene) see https://www.engineeringtoolbox.com/friction-coefficients-d_778.html
+        -->
+        <friction>
+          <ode>
+            <mu>0.7</mu>
+            <mu2>0.7</mu2>
+          </ode>
+        </friction>
+        <contact>
+          <collide_bitmask>1</collide_bitmask>
+          <ode>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+            <max_vel>1</max_vel>
+            <min_depth>0.002</min_depth>
+          </ode>
+          <bullet>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+          </bullet>
+        </contact>
+      </surface>
     </collision>
     
     <visual name='square_link_visual'>
@@ -153,7 +229,7 @@
   </link>
 
   <link name='sphere_link'><!---->
-    <pose relative_to='world'>0.52 0 0.3 0 0 0</pose>
+    <pose relative_to='world'>0.65 0.0 0.3 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
       <mass>0.017</mass>
@@ -192,7 +268,7 @@
   </link>
 
   <link name='triange_link'><!---->
-    <pose relative_to='world'>0.52 0 0.3 0 0 0</pose>
+    <pose relative_to='world'>0.65 -0.06 0.3 0 0 0</pose>
     <inertial>
       <pose relative_to='triange_link'>0 0 0 0 -0 0</pose>
       <mass>0.017</mass>
@@ -299,7 +375,7 @@
   -->
 
   <link name='dumpbell_0.5'>
-    <pose relative_to='world'>0.6 0.2 0.35 0 0 0</pose>
+    <pose relative_to='world'>0.7 0.2 0.35 0 0 0</pose>
 
     <inertial>
       <pose>0 0 0 0 0 0</pose>
