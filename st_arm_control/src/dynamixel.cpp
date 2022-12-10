@@ -100,7 +100,8 @@ void Dynamixel::syncReadThetaDot()
 }
 
 
-void Dynamixel::SetTorqueRef(VectorXd a_torque){
+void Dynamixel::SetTorqueRef(VectorXd a_torque)
+{
   for (uint8_t i=0; i < 4; i++) ref_torque_[i] = a_torque[i];
   // ref_torque_[3] = 0;
 }
