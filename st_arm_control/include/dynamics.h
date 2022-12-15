@@ -183,7 +183,7 @@ namespace Dynamics
         };
         enum ControlMode control_mode;
 
-
+    public:
         //*************** Weight estimation **************//
         VectorXd pose_difference = VectorXd::Zero(6);
         Vector3d position_difference = VectorXd::Zero(3);

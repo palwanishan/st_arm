@@ -25,6 +25,9 @@ int main(int argc, char *argv[])
     ros::Publisher st_arm_joint_states_pub_;
     st_arm_joint_states_pub_ = node_handle_.advertise<sensor_msgs::JointState>("st_arm/joint_states", 100);
 
+    ros::Publisher st_arm_object_weight_pub_;
+    st_arm_object_weight_pub_ = node_handle_.advertise<std_msgs::Float32MultiArray>("st_arm/estimated_obj_weight", 100);
+
     ros::Subscriber switch_mode_sub_;
     switch_mode_sub_ = node_handle_.subscribe("st_arm/switch_mode", 10, &Callback::SwitchMode, &callback);
 
@@ -88,7 +91,12 @@ int main(int argc, char *argv[])
             // msg.velocity.push_back(jm_dynamics.th_dot_estimated[i]);
         }
         st_arm_joint_states_pub_.publish(msg);
-        
+
+        std_msgs::Float32MultiArray object_weight_msg;
+        object_weight_msg.data.push_back(jm_dynamics.pose_difference(2));
+        object_weight_msg.data.push_back(jm_dynamics.estimated_object_weight);
+        st_arm_object_weight_pub_.publish(object_weight_msg);
+
         ros::spinOnce();
         loop_rate.sleep();
     }
