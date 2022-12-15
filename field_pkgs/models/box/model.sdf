@@ -4,11 +4,14 @@
   <self_collide>true</self_collide>
   <pose>0 0 0 0 0 0</pose>
 
-  <!-- <joint name="fixed to ground" type="fixed">
+  <!-- 
+  <joint name="fixed to ground" type="fixed">
       <parent>world</parent>
       <child>box_link</child>
-  </joint>    -->
+  </joint>
+  -->
 
+  <!--
   <link name ='box_link'>
     <pose relative_to='world'>2.5 0 0.05 0 0 0</pose>
     <collision name ='box_link_collision'>
@@ -25,7 +28,7 @@
       </material>
     </visual>
   </link>
-
+  -->
 
   <!--
   <joint name="desk_joint" type="fixed">
@@ -68,14 +71,14 @@
     </visual> 
   </link>
   --> 
-
+  
+  <!---->
   <joint name="peg_joint" type="fixed">
     <parent>desk_link</parent>
     <child>peg_link</child>
   </joint>
   
-
-  <link name='peg_link'><!---->
+  <link name='peg_link'>
     <pose relative_to='world'>0.7 0 0.255 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
@@ -89,32 +92,6 @@
         <izz>0.000200818</izz>
       </inertia>
     </inertial>    
-
-    <!--
-    <visual name='peg_link_visual'>
-      <pose>0 0 0 0 -0 0</pose>
-      <geometry>
-        <mesh>
-          <scale>1 1 1</scale>
-          <uri>model://experiment_description/meshes/collada/peg_in_hole.dae</uri>
-        </mesh>        
-      </geometry>
-      <material>
-        <ambient>0.6 0.3 0.0 1</ambient>
-      </material>
-    </visual>
-    -->
-    <!--
-    <collision name='peg_link_collision'>
-      <pose>0 0 0 0 0 0</pose>
-      <geometry>
-        <mesh>
-          <scale>1 1 1</scale>
-          <uri>model://experiment_description/meshes/collada/peg_in_hole.dae</uri>
-        </mesh>
-      </geometry>
-    </collision>
-    -->
 
     <visual name='peg_cylinder_link_visual'>
       <pose>0.025 0.025 0.1 0 0 0</pose>
@@ -159,12 +136,11 @@
         </box>
       </geometry>
     </collision>
-
-
   </link>
-
   
-  <link name='square_link'><!---->
+
+  <!---->
+  <link name='square_link'>
     <pose relative_to='world'>0.65 0.06 0.3 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
@@ -189,9 +165,6 @@
       </geometry>
 
       <surface>
-        <!--NOTE: Used dynamic friction of clean dry plastic cube on a plastic surface
-        (i.e. Polyethylene) see https://www.engineeringtoolbox.com/friction-coefficients-d_778.html
-        -->
         <friction>
           <ode>
             <mu>0.7</mu>
@@ -227,8 +200,10 @@
       </material>
     </visual>
   </link>
-
-  <link name='sphere_link'><!---->
+  
+  
+  <!--
+  <link name='sphere_link'>
     <pose relative_to='world'>0.65 0.0 0.3 0 0 0</pose>
     <inertial>
       <pose>0 0 0 0 -0 0</pose>
@@ -266,8 +241,10 @@
       </material>
     </visual>
   </link>
-
-  <link name='triange_link'><!---->
+  -->
+  
+  <!--
+  <link name='triange_link'>
     <pose relative_to='world'>0.65 -0.06 0.3 0 0 0</pose>
     <inertial>
       <pose relative_to='triange_link'>0 0 0 0 -0 0</pose>
@@ -305,27 +282,16 @@
       </material>
     </visual>
   </link>
+  -->
 
-    <joint name="desk_joint" type="fixed">
-      <parent>world</parent>
-      <child>desk_link</child>
-    </joint>
+  <joint name="desk_joint" type="fixed">
+    <parent>world</parent>
+    <child>desk_link</child>
+  </joint>
 
 
   <link name='desk_link'>
     <pose relative_to='world'>0.6 0 0.25 0 0 0</pose>
-    
-    <!--
-    <collision name='desk_link_collision'>
-      <pose>0 0 0 0 0 0</pose>
-      <geometry>
-        <mesh>
-          <scale>1 1 1</scale>
-          <uri>model://experiment_description/meshes/stl/Desk.stl</uri>
-        </mesh>
-      </geometry>
-    </collision>
-    -->
 
     <collision name ='desk_link_collision'>
       <pose>0 0 -0.0025 0 0 0</pose>
@@ -374,91 +340,9 @@
   </link>
   -->
 
-  <link name='dumpbell_0.5'>
-    <pose relative_to='world'>0.7 0.2 0.35 0 0 0</pose>
-
-    <inertial>
-      <pose>0 0 0 0 0 0</pose>
-      <mass>0.5</mass>
-      <inertia>
-        <ixx>0.00125879</ixx>
-        <ixy>1.394e-08</ixy>      <iyy>0.00126646</iyy>
-        <ixz>-1.34976e-06</ixz>   <iyz>-1.00471e-05</iyz>   <izz>2.07785e-05</izz>
-      </inertia>
-    </inertial>
-
-    <collision name='dumpbell_collision_middle'>
-      <pose>0 0 0 0 0 0</pose>
-      <geometry>
-        <cylinder>
-          <radius>0.02</radius>
-          <length>0.1</length>
-        </cylinder>
-      </geometry>
-    </collision>
-
-    <collision name='dumpbell_collision_down'>
-      <pose>0 0 -0.05 0 0 0</pose>
-      <geometry>
-        <cylinder>
-          <radius>0.05</radius>
-          <length>0.05</length>
-        </cylinder>
-      </geometry>
-    </collision>
-
-    <collision name='dumpbell_collision_up'>
-      <pose>0 0 0.05 0 0 0</pose>
-      <geometry>
-        <cylinder>
-          <radius>0.05</radius>
-          <length>0.05</length>
-        </cylinder>
-      </geometry>
-    </collision>
-
-    <visual name='dumpbell_collision_middle'>
-      <pose>0 0 0 0 0 0</pose>
-      <geometry>
-        <cylinder>
-          <radius>0.02</radius>
-          <length>0.1</length>
-        </cylinder>
-      </geometry>
-      <material>
-        <ambient>1 0 0 1</ambient>  <!-- red -->
-      </material>
-    </visual>
-    
-    <visual name='dumpbell_visual_down'>
-      <pose>0 0 -0.05 0 0 0</pose>
-      <geometry>
-        <cylinder>
-          <radius>0.05</radius>
-          <length>0.05</length>
-        </cylinder>
-      </geometry>
-      <material>
-        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
-      </material>
-    </visual>
-
-    <visual name='dumpbell_visual_up'>
-      <pose>0 0 0.05 0 0 0</pose>
-      <geometry>
-        <cylinder>
-          <radius>0.05</radius>
-          <length>0.05</length>
-        </cylinder>
-      </geometry>
-      <material>
-        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
-      </material>
-    </visual>
-  </link>
-  
+  <!-- red --><!--
   <link name='dumpbell_0.25'>
-    <pose relative_to='world'>0.6 -0.2 0.35 0 0 0</pose>
+    <pose relative_to='world'>0.7 0.2 0.35 0 0 0</pose>
 
     <inertial>
       <pose>0 0 0 0 0 0</pose>
@@ -509,7 +393,7 @@
         </cylinder>
       </geometry>
       <material>
-        <ambient>0 1 0 1</ambient>  <!-- red -->
+        <ambient>1 0 0 1</ambient>  
       </material>
     </visual>
     
@@ -522,7 +406,7 @@
         </cylinder>
       </geometry>
       <material>
-        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+        <ambient>0.4 0.2 0.6 1</ambient>
       </material>
     </visual>
 
@@ -535,13 +419,100 @@
         </cylinder>
       </geometry>
       <material>
-        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+        <ambient>0.4 0.2 0.6 1</ambient>
       </material>
     </visual>
   </link>
-  
+  -->
+
+  <!-- green 
+  <link name='dumpbell_0.5'>
+    <pose relative_to='world'>0.7 0.0 0.35 0 0 0</pose>
+
+    <inertial>
+      <pose>0 0 0 0 0 0</pose>
+      <mass>0.5</mass>
+      <inertia>
+        <ixx>0.00125879</ixx>
+        <ixy>1.394e-08</ixy>      <iyy>0.00126646</iyy>
+        <ixz>-1.34976e-06</ixz>   <iyz>-1.00471e-05</iyz>   <izz>2.07785e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <collision name='dumpbell_collision_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+    </collision>
+
+    <visual name='dumpbell_collision_middle'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.02</radius>
+          <length>0.1</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0 1 0 1</ambient>  
+      </material>
+    </visual>
+    
+    <visual name='dumpbell_visual_down'>
+      <pose>0 0 -0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  
+      </material>
+    </visual>
+
+    <visual name='dumpbell_visual_up'>
+      <pose>0 0 0.05 0 0 0</pose>
+      <geometry>
+        <cylinder>
+          <radius>0.05</radius>
+          <length>0.05</length>
+        </cylinder>
+      </geometry>
+      <material>
+        <ambient>0.4 0.2 0.6 1</ambient>  
+      </material>
+    </visual>
+  </link>
+  -->
+
+  <!-- blue 
   <link name='dumpbell_0.75'>
-    <pose relative_to='world'>0.5 0.2 0.35 0 0 0</pose>
+    <pose relative_to='world'>0.7 -0.2 0.35 0 0 0</pose>
 
     <inertial>
       <pose>0 0 0 0 0 0</pose>
@@ -592,7 +563,7 @@
         </cylinder>
       </geometry>
       <material>
-        <ambient>0 0 1 1</ambient>  <!-- red -->
+        <ambient>0 0 1 1</ambient>
       </material>
     </visual>
     
@@ -605,7 +576,7 @@
         </cylinder>
       </geometry>
       <material>
-        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+        <ambient>0.4 0.2 0.6 1</ambient>
       </material>
     </visual>
 
@@ -618,12 +589,262 @@
         </cylinder>
       </geometry>
       <material>
-        <ambient>0.4 0.2 0.6 1</ambient>  <!-- black -->
+        <ambient>0.4 0.2 0.6 1</ambient>
+      </material>
+    </visual>
+  </link>
+  -->
+
+
+  <!---->
+  <link name='square_link1'>
+    <pose relative_to='world'>0.65 0.0 0.3 0 0 0</pose>
+    <inertial>
+      <pose>0 0 0 0 -0 0</pose>
+      <mass>0.017</mass>
+      <inertia>
+        <ixx>1e-05</ixx>
+        <ixy>1e-10</ixy>
+        <ixz>1e-10</ixz>
+        <iyy>1e-05</iyy>
+        <iyz>1e-10</iyz>
+        <izz>1e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='square_link_collision'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.7</mu>
+            <mu2>0.7</mu2>
+          </ode>
+        </friction>
+        <contact>
+          <collide_bitmask>1</collide_bitmask>
+          <ode>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+            <max_vel>1</max_vel>
+            <min_depth>0.002</min_depth>
+          </ode>
+          <bullet>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+          </bullet>
+        </contact>
+      </surface>
+    </collision>
+    
+    <visual name='square_link_visual'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+      <material>
+        <ambient>0 1 0 1</ambient>
+      </material>
+    </visual>
+  </link>
+
+  <!---->
+  <link name='square_link2'>
+    <pose relative_to='world'>0.65 0.12 0.3 0 0 0</pose>
+    <inertial>
+      <pose>0 0 0 0 -0 0</pose>
+      <mass>0.017</mass>
+      <inertia>
+        <ixx>1e-05</ixx>
+        <ixy>1e-10</ixy>
+        <ixz>1e-10</ixz>
+        <iyy>1e-05</iyy>
+        <iyz>1e-10</iyz>
+        <izz>1e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='square_link_collision'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.7</mu>
+            <mu2>0.7</mu2>
+          </ode>
+        </friction>
+        <contact>
+          <collide_bitmask>1</collide_bitmask>
+          <ode>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+            <max_vel>1</max_vel>
+            <min_depth>0.002</min_depth>
+          </ode>
+          <bullet>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+          </bullet>
+        </contact>
+      </surface>
+    </collision>
+    
+    <visual name='square_link_visual'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+      <material>
+        <ambient>0 0 1 1</ambient>
+      </material>
+    </visual>
+  </link>
+
+
+  <!---->
+  <link name='square_link3'>
+    <pose relative_to='world'>0.65 -0.06 0.3 0 0 0</pose>
+    <inertial>
+      <pose>0 0 0 0 -0 0</pose>
+      <mass>0.017</mass>
+      <inertia>
+        <ixx>1e-05</ixx>
+        <ixy>1e-10</ixy>
+        <ixz>1e-10</ixz>
+        <iyy>1e-05</iyy>
+        <iyz>1e-10</iyz>
+        <izz>1e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='square_link_collision'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.7</mu>
+            <mu2>0.7</mu2>
+          </ode>
+        </friction>
+        <contact>
+          <collide_bitmask>1</collide_bitmask>
+          <ode>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+            <max_vel>1</max_vel>
+            <min_depth>0.002</min_depth>
+          </ode>
+          <bullet>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+          </bullet>
+        </contact>
+      </surface>
+    </collision>
+    
+    <visual name='square_link_visual'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+      <material>
+        <ambient>1 1 0 1</ambient>
+      </material>
+    </visual>
+  </link>
+
+    <!---->
+  <link name='square_link4'>
+    <pose relative_to='world'>0.65 -0.12 0.3 0 0 0</pose>
+    <inertial>
+      <pose>0 0 0 0 -0 0</pose>
+      <mass>0.017</mass>
+      <inertia>
+        <ixx>1e-05</ixx>
+        <ixy>1e-10</ixy>
+        <ixz>1e-10</ixz>
+        <iyy>1e-05</iyy>
+        <iyz>1e-10</iyz>
+        <izz>1e-05</izz>
+      </inertia>
+    </inertial>
+
+    <collision name='square_link_collision'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.7</mu>
+            <mu2>0.7</mu2>
+          </ode>
+        </friction>
+        <contact>
+          <collide_bitmask>1</collide_bitmask>
+          <ode>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+            <max_vel>1</max_vel>
+            <min_depth>0.002</min_depth>
+          </ode>
+          <bullet>
+            <kp>1e+06</kp>
+            <kd>1e+06</kd>
+          </bullet>
+        </contact>
+      </surface>
+    </collision>
+    
+    <visual name='square_link_visual'>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <mesh>
+          <scale>1 1 1</scale>
+          <uri>model://experiment_description/meshes/stl/Square.stl</uri>
+        </mesh>
+      </geometry>
+      <material>
+        <ambient>1 0 1 1</ambient>
       </material>
     </visual>
   </link>
 
 
 </model>
-
 </sdf>

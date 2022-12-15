@@ -6,7 +6,8 @@ namespace Dynamics
 {
     JMDynamics::JMDynamics()
     {
-        InitializeRBDLVariables();
+        InitializeRBDLVariablesWithObj(0);
+        // InitializeRBDLVariables();
     }
 
 
@@ -39,6 +40,10 @@ namespace Dynamics
                 GenerateTorqueManipulationMode();
                 GenerateGripperTorque();
                 break;
+            case weight_estimation:
+                GenerateTorqueManipulationModeWithWeightEstimation();
+                GenerateGripperTorque();
+                break;
             default:
                 GenerateTorqueGravityCompensation();
         }
@@ -52,6 +57,7 @@ namespace Dynamics
         else if (msg -> data == 1) control_mode = manipulation_mode;
         else if (msg -> data == 2) control_mode = vision_mode;  
         else if (msg -> data == 3) control_mode = draw_infinity;  
+        else if (msg -> data == 4) control_mode = weight_estimation;  
         else                       control_mode = gravity_compensation;    
     }
 
@@ -709,4 +715,245 @@ namespace Dynamics
         std::cout << "RBDL Initialize function success" << std::endl;
     }
 
+    //  Weight Estimation in Manipulation mode
+    void JMDynamics::GenerateTorqueManipulationModeWithWeightEstimation(){
+        gain_p = gain_p_task_space;
+        gain_d = gain_d_task_space;
+        gain_w = gain_w_task_space; 
+        // gain_r << 1, 1.5, 1.5, 1, 1, 1; //adjust GC intensity
+
+        threshold << 0.2, 0.1, 0.1, 0.1, 0.1, 0.1; 
+        joint_limit << 3.14,     0,  2.8,  1.57,  1.57,  1.57,
+                        -3.14, -3.14, -0.3, -1.57, -1.57, -1.57;
+
+        A0 << 1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1;
+        A1 << cos(th[0]), 0, -sin(th[0]), 0,
+            sin(th[0]), 0, cos(th[0]), 0,
+            0, -1, 0, L1,
+            0, 0, 0, 1;
+        A2 << cos(th[1]), -sin(th[1]), 0, L2*cos(th[1]),
+            sin(th[1]), cos(th[1]), 0, L2*sin(th[1]),
+            0, 0, 1, 0, 
+            0, 0, 0, 1;
+        A3 << cos(th[2]), -sin(th[2]), 0, L3*cos(th[2]), 
+            sin(th[2]), cos(th[2]), 0, L3*sin(th[2]), 
+            0, 0, 1, 0,
+            0, 0, 0, 1;
+        A4 << sin(th[3]), 0, cos(th[3]), 0,
+            -cos(th[3]), 0, sin(th[3]), 0,
+            0, -1, 0, 0,
+            0, 0, 0, 1;
+        A5 << -sin(th[4]), 0, cos(th[4]), 0,
+            cos(th[4]), 0, sin(th[4]), 0,
+            0, 1, 0, L5,
+            0, 0, 0, 1;
+        A6 << -sin(th[5]), -cos(th[5]), 0, -L6*sin(th[5]),
+            cos(th[5]), -sin(th[5]), 0, L6*cos(th[5]),
+            0, 0, 1, 0, 
+            0, 0, 0, 1;          
+            
+        T00 = A0;
+        T01 = T00*A1;
+        T02 = T01*A2;
+        T03 = T02*A3;
+        T04 = T03*A4;
+        T05 = T04*A5;
+        T06 = T05*A6;
+    
+        a0 << T00(0,2), T00(1,2), T00(2,2);
+        a1 << T01(0,2), T01(1,2), T01(2,2);
+        a2 << T02(0,2), T02(1,2), T02(2,2);
+        a3 << T03(0,2), T03(1,2), T03(2,2);
+        a4 << T04(0,2), T04(1,2), T04(2,2);
+        a5 << T05(0,2), T05(1,2), T05(2,2);
+
+        P6_P0 << T06(0,3)-T00(0,3), T06(1,3)-T00(1,3), T06(2,3)-T00(2,3);
+        P6_P1 << T06(0,3)-T01(0,3), T06(1,3)-T01(1,3), T06(2,3)-T01(2,3);
+        P6_P2 << T06(0,3)-T02(0,3), T06(1,3)-T02(1,3), T06(2,3)-T02(2,3);
+        P6_P3 << T06(0,3)-T03(0,3), T06(1,3)-T03(1,3), T06(2,3)-T03(2,3);
+        P6_P4 << T06(0,3)-T04(0,3), T06(1,3)-T04(1,3), T06(2,3)-T04(2,3);
+        P6_P5 << T06(0,3)-T05(0,3), T06(1,3)-T05(1,3), T06(2,3)-T05(2,3);
+
+        J1 << a0.cross(P6_P0), a0;
+        J2 << a1.cross(P6_P1), a1;
+        J3 << a2.cross(P6_P2), a2;
+        J4 << a3.cross(P6_P3), a3;
+        J5 << a4.cross(P6_P4), a4;
+        J6 << a5.cross(P6_P5), a5;
+
+        Jacobian << J1, J2, J3, J4, J5, J6;
+
+        ee_position << T06(0,3), T06(1,3), T06(2,3);
+
+
+        ref_ee_position = hmd_position;
+
+        ee_position_error(0) =  ref_ee_position(0) - ee_position(0);
+        ee_position_error(1) =  ref_ee_position(1) - ee_position(1);
+        ee_position_error(2) =  ref_ee_position(2) - ee_position(2);
+
+        ee_force << gain_p(0) * ee_position_error(0), 
+                    gain_p(1) * ee_position_error(1), 
+                    gain_p(2) * ee_position_error(2);
+
+        // ee_velocity = (ee_position - pre_ee_position) * 500; //  500 = 1/0.002 
+        // pre_ee_position = ee_position;
+        // ee_force(0) = gain_p(0) * (ref_ee_position(0) - ee_position(0)) - gain_d(0) * ee_velocity(0);
+        // ee_force(1) = gain_p(1) * (ref_ee_position(1) - ee_position(1)) - gain_d(1) * ee_velocity(1);
+        // ee_force(2) = gain_p(2) * (ref_ee_position(2) - ee_position(2)) - gain_d(2) * ee_velocity(2);
+        // std::cout << ee_velocity(0) << "    " << ee_velocity(1) << "    " << ee_velocity(2) << std::endl;
+
+        ee_rotation = T06.block<3,3>(0,0);
+        ee_rotation_x = ee_rotation.block<3,1>(0,0);
+        ee_rotation_y = ee_rotation.block<3,1>(0,1);
+        ee_rotation_z = ee_rotation.block<3,1>(0,2);
+
+        ref_ee_rotation = hmd_quaternion.normalized().toRotationMatrix();
+
+        ref_ee_rotation_x = ref_ee_rotation.block<3,1>(0,0); 
+        ref_ee_rotation_y = ref_ee_rotation.block<3,1>(0,1); 
+        ref_ee_rotation_z = ref_ee_rotation.block<3,1>(0,2);
+
+        ee_orientation_error = ee_rotation_x.cross(ref_ee_rotation_x) 
+                            + ee_rotation_y.cross(ref_ee_rotation_y) 
+                            + ee_rotation_z.cross(ref_ee_rotation_z);
+        
+        ee_momentum << gain_w(0) * ee_orientation_error(0), 
+                    gain_w(1) * ee_orientation_error(1), 
+                    gain_w(2) * ee_orientation_error(2);
+
+        pose_difference << ee_position_error(0), ee_position_error(1), ee_position_error(2), ee_orientation_error(0), ee_orientation_error(1), ee_orientation_error(2);
+
+        estimated_object_weight = ee_force(2) / 9.81;
+        
+        if(is_start_estimation)
+        {
+            estimated_object_weight_difference += estimated_object_weight;
+            InitializeRBDLVariablesWithObj(estimated_object_weight_difference);
+            is_start_estimation = false;
+            std::cout << "RBDL calibrated with obj weight estimation method" << std::endl;
+            std::cout << "estimated_object_weight_difference is: " << estimated_object_weight_difference << std::endl;
+            std::cout << "last_estimated_object_weight is: " << last_estimated_object_weight << std::endl;
+            std::cout << "estimated_object_weight_difference is: " << estimated_object_weight_difference << std::endl;
+            last_estimated_object_weight = estimated_object_weight;
+        }
+
+        virtual_spring << ee_force(0), ee_force(1), ee_force(2), ee_momentum(0), ee_momentum(1), ee_momentum(2);
+
+        tau = Jacobian.transpose() * virtual_spring + tau_gravity_compensation - tau_viscous_damping;
+
+        RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
+        for(uint8_t i = 0; i < 6; i++)
+        {
+            tau_gravity_compensation(i) = arm_rbdl.tau(i);
+        }
+
+        for(uint8_t i=0; i<6; i++) {
+            // tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot[i]; 
+            tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot_sma_filtered[i]; 
+            tau_gravity_compensation[i] = tau_gravity_compensation[i] * gain_r[i];
+        }
+
+        for(int i=0; i<6; i++){
+            if(th(i) > joint_limit(0,i) - threshold(i) && tau(i) > 0 || th(i) < joint_limit(1,i) + threshold(i) && tau(i) < 0)
+                joint_torque[i] = tau_gravity_compensation[i] - tau_viscous_damping[i];    //we can add more damping here
+            else joint_torque[i] = tau[i]; 
+        }
+    }
+
+
+    void JMDynamics::InitializeRBDLVariablesWithObj(float a_obj_weight)
+    {
+        rbdl_check_api_version(RBDL_API_VERSION);
+        std::cout << "Checked RBDL API VERSION" << std::endl;
+
+        arm_rbdl.rbdl_model = new RBDLModel();
+        arm_rbdl.rbdl_model->gravity = RBDL::Math::Vector3d(0.0, 0.0, -9.81);
+
+        arm_rbdl.base_inertia = RBDLMatrix3d(0.00033, 0,        0,
+                                                0,       0.00034,  0,
+                                                0,       0,        0.00056);
+
+        arm_rbdl.shoulder_yaw_inertia = RBDLMatrix3d( 0.00024,  0,        0,
+                                                        0,        0.00040,  0,
+                                                        0,        0,        0.00026);
+
+        arm_rbdl.shoulder_pitch_inertia = RBDLMatrix3d(0.00028, 0,        0,
+                                                        0,       0.00064,  0,
+                                                        0,       0,        0.00048);
+
+        arm_rbdl.elbow_pitch_inertia = RBDLMatrix3d(0.00003,  0,        0,
+                                                    0,        0.00019,  0,
+                                                    0,        0,        0.00020);
+
+        arm_rbdl.wrist_pitch_inertia = RBDLMatrix3d(0.00002,  0,        0,
+                                                    0,        0.00002,  0,
+                                                    0,        0,        0.00001);
+
+        arm_rbdl.wrist_roll_inertia = RBDLMatrix3d(0.00001,  0,        0,
+                                                    0,        0.00002,  0,
+                                                    0,        0,        0.00001);
+
+        arm_rbdl.wrist_yaw_inertia = RBDLMatrix3d(0.00006,  0,        0,
+                                                    0,        0.00003,  0,
+                                                    0,        0,        0.00005);
+
+        arm_rbdl.gripper_inertia = RBDLMatrix3d(0.00001,  0,        0,
+                                                    0,        0.00001,  0,
+                                                    0,        0,        0.00001);
+
+        // arm_rbdl.base_link = RBDLBody(0.59468, RBDLVector3d(0, 0.00033, 0.03107), arm_rbdl.base_inertia);
+        // arm_rbdl.base_joint = RBDLJoint(RBDL::JointType::JointTypeFixed, RBDLVector3d(0,0,0));
+        // arm_rbdl.base_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.base_joint, arm_rbdl.base_link);
+
+        arm_rbdl.shoulder_yaw_link = RBDLBody(0.55230, RBDLVector3d(0.00007, -0.00199, 0.09998), arm_rbdl.shoulder_yaw_inertia);
+        arm_rbdl.shoulder_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
+        arm_rbdl.shoulder_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(0, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.shoulder_yaw_joint, arm_rbdl.shoulder_yaw_link);
+
+        arm_rbdl.shoulder_pitch_link = RBDLBody(0.65326, RBDLVector3d(0.22204, 0.04573, 0), arm_rbdl.shoulder_pitch_inertia);
+        arm_rbdl.shoulder_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+        arm_rbdl.shoulder_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(1, RBDL::Math::Xtrans(RBDLVector3d(0, 0, 0.1019)), arm_rbdl.shoulder_pitch_joint, arm_rbdl.shoulder_pitch_link);
+
+        arm_rbdl.elbow_pitch_link = RBDLBody(0.17029, RBDLVector3d(0.17044, 0.00120, 0.00004), arm_rbdl.elbow_pitch_inertia);
+        arm_rbdl.elbow_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+        arm_rbdl.elbow_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(2, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.elbow_pitch_joint, arm_rbdl.elbow_pitch_link);
+
+        arm_rbdl.wrist_pitch_link = RBDLBody(0.09234, RBDLVector3d(0.04278, 0, 0.01132), arm_rbdl.wrist_pitch_inertia);
+        arm_rbdl.wrist_pitch_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,1,0));
+        arm_rbdl.wrist_pitch_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(3, RBDL::Math::Xtrans(RBDLVector3d(0.25,0,0)), arm_rbdl.wrist_pitch_joint, arm_rbdl.wrist_pitch_link);
+
+        arm_rbdl.wrist_roll_link = RBDLBody(0.08696, RBDLVector3d(0.09137, 0, 0.00036), arm_rbdl.wrist_roll_inertia);
+        arm_rbdl.wrist_roll_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(1,0,0));
+        arm_rbdl.wrist_roll_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(4, RBDL::Math::Xtrans(RBDLVector3d(0,0,0)), arm_rbdl.wrist_roll_joint, arm_rbdl.wrist_roll_link);
+
+        arm_rbdl.wrist_yaw_link = RBDLBody(0.14876, RBDLVector3d(0.05210, 0.00034, 0.02218), arm_rbdl.wrist_yaw_inertia);
+        arm_rbdl.wrist_yaw_joint = RBDLJoint(RBDL::JointType::JointTypeRevolute, RBDLVector3d(0,0,1));
+        arm_rbdl.wrist_yaw_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(5, RBDL::Math::Xtrans(RBDLVector3d(0.1045,0,0)), arm_rbdl.wrist_yaw_joint, arm_rbdl.wrist_yaw_link);
+
+        arm_rbdl.gripper_link = RBDLBody(a_obj_weight, RBDLVector3d(0.0, 0.0, 0.0), arm_rbdl.gripper_inertia);
+        arm_rbdl.gripper_joint = RBDLJoint(RBDL::JointType::JointTypeFixed);
+        arm_rbdl.gripper_id = arm_rbdl.rbdl_model->RBDLModel::AddBody(6, RBDL::Math::Xtrans(RBDLVector3d(0.135,0,0)), arm_rbdl.gripper_joint, arm_rbdl.gripper_link);
+
+        arm_rbdl.q = RBDLVectorNd::Zero(6);
+        arm_rbdl.q_dot = RBDLVectorNd::Zero(6);
+        arm_rbdl.q_d_dot = RBDLVectorNd::Zero(6);
+        arm_rbdl.tau = RBDLVectorNd::Zero(6);
+
+        arm_rbdl.jacobian = RBDLMatrixNd::Zero(6,6);
+        arm_rbdl.jacobian_prev = RBDLMatrixNd::Zero(6,6);
+        arm_rbdl.jacobian_dot = RBDLMatrixNd::Zero(6,6);
+        arm_rbdl.jacobian_inverse = RBDLMatrixNd::Zero(6,6);
+
+        std::cout << "RBDL Initialize function success" << std::endl;
+    }
+
+
+    void JMDynamics::SwitchOnAddingEstimatedObjWeightToRBDL(const std_msgs::Int32Ptr & msg)
+    {
+        if      (msg -> data == 0) is_start_estimation = false;
+        else if (msg -> data == 1) is_start_estimation = true;
+    }
 }

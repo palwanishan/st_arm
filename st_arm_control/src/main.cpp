@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
     ros::Subscriber virtual_box_pose_sub_;
     virtual_box_pose_sub_ = node_handle_.subscribe("unity/virtual_box_pose", 10, &Callback::HMDTFCallback, &callback);
 
+    ros::Subscriber weight_est_start_sub_;
+    weight_est_start_sub_ = node_handle_.subscribe("unity/calibrate_obj_weight", 10, &Dynamics::JMDynamics::SwitchOnAddingEstimatedObjWeightToRBDL, &jm_dynamics);
+
     spi2can::getInstance();
 
     sharedData = (pRBCORE_SHM)malloc(sizeof(RBCORE_SHM));

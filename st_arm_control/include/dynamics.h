@@ -68,18 +68,29 @@ using RBDLJoint = RBDL::Joint;
 #define M6 0.28174 //m_Link6;
 #define inner_dt 0.001
 
+// typedef struct
+// {
+//   RBDLModel* rbdl_model;
+//   RBDLVectorNd q, q_dot, q_d_dot, tau;
+//   RBDLMatrixNd jacobian, jacobian_prev, jacobian_dot, jacobian_inverse;
+
+//   unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id;                               //id have information of the body
+//   RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link;
+//   RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint;
+//   RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia; //Inertia of links
+// } Arm_RBDL;
+
 typedef struct
 {
-  RBDLModel* rbdl_model;
-  RBDLVectorNd q, q_dot, q_d_dot, tau;
-  RBDLMatrixNd jacobian, jacobian_prev, jacobian_dot, jacobian_inverse;
+    RBDLModel* rbdl_model;
+    RBDLVectorNd q, q_dot, q_d_dot, tau;
+    RBDLMatrixNd jacobian, jacobian_prev, jacobian_dot, jacobian_inverse;
 
-  unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id;                               //id have information of the body
-  RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link;
-  RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint;
-  RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia; //Inertia of links
+    unsigned int base_id, shoulder_yaw_id, shoulder_pitch_id, elbow_pitch_id, wrist_pitch_id, wrist_roll_id, wrist_yaw_id, gripper_id;                        //id have information of the body
+    RBDLBody base_link, shoulder_yaw_link, shoulder_pitch_link, elbow_pitch_link, wrist_pitch_link, wrist_roll_link, wrist_yaw_link, gripper_link;
+    RBDLJoint base_joint, shoulder_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint, wrist_pitch_joint, wrist_roll_joint, wrist_yaw_joint, gripper_joint;
+    RBDLMatrix3d base_inertia, shoulder_yaw_inertia, shoulder_pitch_inertia, elbow_pitch_inertia, wrist_pitch_inertia, wrist_roll_inertia, wrist_yaw_inertia, gripper_inertia; //Inertia of links
 } Arm_RBDL;
-
 
 namespace Dynamics
 {
@@ -98,7 +109,7 @@ namespace Dynamics
         unsigned int cnt = 0;   
 
         Vector3d ee_rotation_x, ee_rotation_y, ee_rotation_z, ref_ee_rotation_x, ref_ee_rotation_y, ref_ee_rotation_z;
-        Vector3d ee_orientation_error, ee_force, ee_momentum;
+        Vector3d ee_orientation_error, ee_position_error, ee_force, ee_momentum;
 
         Matrix3d ee_rotation;
         Matrix3d ref_ee_rotation;
@@ -166,10 +177,23 @@ namespace Dynamics
             manipulation_mode,
             vision_mode,
             draw_infinity,
-            not_defined_1,
-            not_defined_2    
+            weight_estimation,
+            not_defined_2
         };
         enum ControlMode control_mode;
+
+
+        //*************** Weight estimation **************//
+        VectorXd pose_difference = VectorXd::Zero(6);
+        Vector3d position_difference = VectorXd::Zero(3);
+        float position_difference_magnitude;
+        float force_magnitude;
+        float estimated_object_weight{0};
+        float estimated_object_weight_difference{0};
+        float last_estimated_object_weight{0};
+        float real_object_weight;
+        bool is_start_estimation{false};
+
 
     public:
         JMDynamics();
@@ -232,6 +256,7 @@ namespace Dynamics
         void GenerateTorqueGravityCompensation();
         void CalculateJointTheta();
         void GenerateTorqueManipulationMode();
+        void GenerateTorqueManipulationModeWithWeightEstimation();
         void GenerateTorqueVisionMode();
         void GenerateGripperTorque();
         void PostureGeneration();
@@ -241,6 +266,9 @@ namespace Dynamics
 
         void SetRBDLVariables();
         void InitializeRBDLVariables();
+
+        void InitializeRBDLVariablesWithObj(float); 
+        void SwitchOnAddingEstimatedObjWeightToRBDL(const std_msgs::Int32Ptr & msg);
     };
 }
 
