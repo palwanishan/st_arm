@@ -45,11 +45,12 @@ using RBDLJoint = RBDL::Joint;
 #define g           9.81;       
 #define PI          3.1415
 
-#define L1 0.16
+// #define L1 0.16
+#define L1 0.1019
 #define L2 0.25
 #define L3 0.25
 #define L4 0.00
-#define L5 0.10
+#define L5 0.1045
 #define L6 0.06
 
 #define m_Link1 0.44951
@@ -66,7 +67,7 @@ using RBDLJoint = RBDL::Joint;
 #define M4 0.76659 //m_Link4+m_Link5+m_Link6;
 #define M5 0.59259 //m_Link5+m_Link6;
 #define M6 0.28174 //m_Link6;
-#define inner_dt 0.001
+#define inner_dt 0.002
 
 // typedef struct
 // {

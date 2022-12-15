@@ -315,9 +315,13 @@ namespace Dynamics
         gain_w = gain_w_task_space; 
         // gain_r << 1, 1.5, 1.5, 1, 1, 1; //adjust GC intensity
 
-        threshold << 0.2, 0.1, 0.1, 0.1, 0.1, 0.1; 
-        joint_limit << 3.14,     0,  2.8,  1.87,  1.57,  1.57,
-                        -3.14, -3.14, -0.3, -1.27, -1.57, -1.57;
+        threshold << 0.1, 0.1, 0.1, 0.01, 0.01, 0.01; 
+        joint_limit << 3.14,     0,  2.8,  1.57,  2.5,  1.57,
+                        -3.14, -3.14, -0.0, -1.57, -2.5, -1.57;
+
+        // threshold << 0.2, 0.1, 0.1, 0.1, 0.1, 0.1; 
+        // joint_limit << 3.14,     0,  2.8,  1.87,  1.57,  1.57,
+        //                 -3.14, -3.14, -0.3, -1.27, -1.57, -1.57;
 
         A0 << 1, 0, 0, 0,
             0, 1, 0, 0,
@@ -602,7 +606,7 @@ namespace Dynamics
     // a argument   // m member    // l local   //p pointer     //r reference   //
     void JMDynamics::GenerateGripperTorque()
     {
-        const float maximum_value = 1;
+        const float maximum_value = 2.3;
         const float minimum_value = -1;
         const float max_torque = 1;
 
