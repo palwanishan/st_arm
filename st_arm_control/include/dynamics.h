@@ -194,6 +194,8 @@ namespace Dynamics
         float last_estimated_object_weight{0};
         float real_object_weight;
         bool is_start_estimation{false};
+        bool is_object_dropped{false};
+        bool is_object_catched{false};
 
 
     public:

@@ -15,7 +15,6 @@ namespace Dynamics
     {
         SetTheta(motor_ctrl.GetJointTheta());
         SetThetaDotSMAF(motor_ctrl.GetThetaDotSMAF());
-        SetRBDLVariables();
         PostureGeneration();
         motor_ctrl.SetTorque(GetTorque());
     }
@@ -92,6 +91,16 @@ namespace Dynamics
     void JMDynamics::SetGripperValue(float a_desired_gripper_theta)
     {
         ref_th[6] = a_desired_gripper_theta;
+
+        if(a_desired_gripper_theta > 1)
+        {
+            is_object_catched = true;
+        }
+        else if(is_object_catched && a_desired_gripper_theta < 0.5)
+        {
+            is_object_catched = false;
+            is_object_dropped = true;
+        }
     }
 
 
@@ -415,6 +424,8 @@ namespace Dynamics
                     gain_w(1) * ee_orientation_error(1), 
                     gain_w(2) * ee_orientation_error(2);
 
+        SetRBDLVariables();
+        
         RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
         for(uint8_t i = 0; i < 6; i++)
         {
@@ -837,6 +848,7 @@ namespace Dynamics
         {
             estimated_object_weight_difference += estimated_object_weight;
             InitializeRBDLVariablesWithObj(estimated_object_weight_difference);
+            // InitializeRBDLVariablesWithObj(0);
             is_start_estimation = false;
             std::cout << "RBDL calibrated with obj weight estimation method" << std::endl;
             std::cout << "estimated_object_weight_difference is: " << estimated_object_weight_difference << std::endl;
@@ -844,10 +856,18 @@ namespace Dynamics
             std::cout << "estimated_object_weight_difference is: " << estimated_object_weight_difference << std::endl;
             last_estimated_object_weight = estimated_object_weight;
         }
+        if(is_object_dropped)
+        {
+            is_object_dropped = false;
+            InitializeRBDLVariablesWithObj(0);
+            std::cout << "RBDL calibrated to zero" << std::endl;
+        }
 
         virtual_spring << ee_force(0), ee_force(1), ee_force(2), ee_momentum(0), ee_momentum(1), ee_momentum(2);
 
         tau = Jacobian.transpose() * virtual_spring + tau_gravity_compensation - tau_viscous_damping;
+
+        SetRBDLVariables();
 
         RBDL::NonlinearEffects(*arm_rbdl.rbdl_model, arm_rbdl.q, arm_rbdl.q_dot, arm_rbdl.tau, NULL);
         for(uint8_t i = 0; i < 6; i++)
