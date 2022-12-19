@@ -1320,11 +1320,11 @@
         </inertia>
       </inertial>
       <visual name='wrist_yaw_link_visual'>
-        <pose>0 0 0 0 -0 0</pose>
+        <pose>0 -0.071 -0.0205 0 -0 0</pose>
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://st_arm_description/meshes/stl/wrist_yaw_link.STL</uri>
+            <uri>model://st_arm_description/meshes/stl/wrist_yaw_link_v2.STL</uri>
           </mesh>
         </geometry>
         <material>

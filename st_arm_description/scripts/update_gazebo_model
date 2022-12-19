@@ -19,7 +19,7 @@ cp `rospack find st_arm_description`/urdf/st_arm.sdf ~/.gazebo/models/st_arm_des
 
 cp `rospack find st_arm_description`/config/st_arm.config ~/.gazebo/models/st_arm_description/model.config
 
-cp -r `rospack find st_arm_description`/meshes/ ~/.gazebo/models/st_arm_description/meshes/
+cp -r `rospack find st_arm_description`/meshes/ ~/.gazebo/models/st_arm_description/
 
 echo ""
 echo "Ready!"

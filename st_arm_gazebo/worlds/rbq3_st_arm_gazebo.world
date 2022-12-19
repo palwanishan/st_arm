@@ -28,7 +28,8 @@
       <uri>model://desk</uri>
     </include>-->
 
-    <plugin name="factory" filename="libfield_pkgs.so"/>
+    <!--
+    <plugin name="factory" filename="libfield_pkgs.so"/>-->
 
     <include>
       <uri>model://rbq3_description</uri>

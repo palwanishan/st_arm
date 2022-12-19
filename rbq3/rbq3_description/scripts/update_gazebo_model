@@ -19,7 +19,7 @@ cp `rospack find rbq3_description`/urdf/rbq3.sdf ~/.gazebo/models/rbq3_descripti
 
 cp `rospack find rbq3_description`/config/rbq3.config ~/.gazebo/models/rbq3_description/model.config
 
-cp -r `rospack find rbq3_description`/meshes/ ~/.gazebo/models/rbq3_description/meshes/
+cp -r `rospack find rbq3_description`/meshes/ ~/.gazebo/models/rbq3_description/
 
 echo ""
 echo "Ready!"
