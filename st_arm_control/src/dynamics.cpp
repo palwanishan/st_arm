@@ -43,6 +43,10 @@ namespace Dynamics
                 GenerateTorqueManipulationModeWithWeightEstimation();
                 GenerateGripperTorque();
                 break;
+            case joint_space_pd:
+                break;
+            case one_motor_tuning:
+                break;
             default:
                 GenerateTorqueGravityCompensation();
         }
@@ -52,11 +56,14 @@ namespace Dynamics
     void JMDynamics::SwitchMode(const std_msgs::Int32ConstPtr & msg)
     {
         cnt = 0;
+        count = 0;
         if      (msg -> data == 0) control_mode = gravity_compensation;
         else if (msg -> data == 1) control_mode = manipulation_mode;
         else if (msg -> data == 2) control_mode = vision_mode;  
         else if (msg -> data == 3) control_mode = draw_infinity;  
         else if (msg -> data == 4) control_mode = weight_estimation;  
+        else if (msg -> data == 5) control_mode = joint_space_pd;  
+        else if (msg -> data == 6) control_mode = one_motor_tuning;  
         else                       control_mode = gravity_compensation;    
     }
 
@@ -244,6 +251,21 @@ namespace Dynamics
             ref_th[i] = 1 * trajectory;
             joint_torque[i] = gain_p_joint_space[i] * (ref_th[i] - th[i]) - gain_d_joint_space[i] * th_dot_sma_filtered[i]; 
         }
+    }
+
+
+    void JMDynamics::GenerateTorqueOneMotorTuning()
+    {
+        GenerateTrajectory();
+
+        ref_th << 0, 0, 0, 0, 0, 0;
+
+        float one_link_gravity_compensation = 10 * sin(th[0]);
+
+        ref_th[0] = trajectory;
+        joint_torque[0] = gain_p_joint_space[0]     *   (ref_th[0] - th[0])                     //  P
+                        - gain_d_joint_space[0]     *   th_dot_sma_filtered[0]                  //  D
+                        + gain_r[0]                 *   one_link_gravity_compensation;          //  gravity compensation
     }
 
 

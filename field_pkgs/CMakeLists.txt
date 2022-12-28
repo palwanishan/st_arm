@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(gazebo REQUIRED)
 
 catkin_package(
- INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME} 
  DEPENDS gazebo_ros roscpp rospy std_msgs
 )

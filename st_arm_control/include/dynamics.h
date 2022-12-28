@@ -179,6 +179,8 @@ namespace Dynamics
             vision_mode,
             draw_infinity,
             weight_estimation,
+            joint_space_pd,
+            one_motor_tuning,
             not_defined_2
         };
         enum ControlMode control_mode;
@@ -254,6 +256,7 @@ namespace Dynamics
         //void OM_joint_states_callback(const sensor_msgs::JointState::ConstPtr &msg);
         void SetOMTheta(VectorXd thetas);
         void GenerateTorqueJointSpacePD();
+        void GenerateTorqueOneMotorTuning();
         void GenerateTorqueTaskSpacePD();
         void GenerateTrajectory();
         void GenerateTorqueGravityCompensation();

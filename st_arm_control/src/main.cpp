@@ -130,13 +130,6 @@ void *rt_motion_thread(void *arg){
         else if(loop_count > 1000){
             loop_count++;
             jm_dynamics.Loop();
-            // jm_dynamics.SetTheta(motor_ctrl.GetJointTheta());
-            // jm_dynamics.SetThetaDotSMAF(motor_ctrl.GetThetaDotSMAF());
-            // jm_dynamics.GenerateTorqueManipulationMode();
-            // jm_dynamics.GenerateTorqueVisionMode();
-            // jm_dynamics.GenerateGripperTorque();
-            // motor_ctrl.SetTorque(jm_dynamics.GetTorque());
-            // motor_ctrl.EnableFilter();
 
             if(comm_loop_count > 500 && is_print_comm_frequency) {
                 comm_loop_count = 1;
