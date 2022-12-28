@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
         for (uint8_t i = 0; i<3; i ++)
         {
             msg.effort.push_back(_DEV_MC[i].GetTorque());
-            // msg.position.push_back(jm_dynamics.ref_th[i]);
+            msg.position.push_back(jm_dynamics.ref_th[i]);
             // msg.velocity.push_back(jm_dynamics.th_dot[i]);
             // msg.velocity.push_back(jm_dynamics.th_dot_estimated[i]);
         }

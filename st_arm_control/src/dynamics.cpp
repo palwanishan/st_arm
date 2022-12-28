@@ -46,6 +46,7 @@ namespace Dynamics
             case joint_space_pd:
                 break;
             case one_motor_tuning:
+                GenerateTorqueOneMotorTuning();
                 break;
             default:
                 GenerateTorqueGravityCompensation();
@@ -256,13 +257,15 @@ namespace Dynamics
 
     void JMDynamics::GenerateTorqueOneMotorTuning()
     {
-        GenerateTrajectory();
+        count++; 
+        float count_time = count * dt;
 
-        ref_th << 0, 0, 0, 0, 0, 0;
+        ref_th << 0, 0, 0, 0, 0, 0, 0;
 
-        float one_link_gravity_compensation = 10 * sin(th[0]);
+        float one_link_gravity_compensation = 0.2 * 10 * sin(th[0]);
 
-        ref_th[0] = trajectory;
+        ref_th[0] = sin(PI*(count_time/step_time)) * PI * 0.5 ;
+
         joint_torque[0] = gain_p_joint_space[0]     *   (ref_th[0] - th[0])                     //  P
                         - gain_d_joint_space[0]     *   th_dot_sma_filtered[0]                  //  D
                         + gain_r[0]                 *   one_link_gravity_compensation;          //  gravity compensation
