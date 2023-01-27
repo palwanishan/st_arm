@@ -4,7 +4,6 @@
 #include <unistd.h>
 
 #include "rmd_motor.h"
-#include "rmd_can.h"
 
 #include "Eigen/Dense"
 #include "Eigen/Core"

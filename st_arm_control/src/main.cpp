@@ -7,7 +7,7 @@
 
 static void *rt_motion_thread(void *arg);
 static void *rt_dynamixel_thread(void *arg);
-pRBCORE_SHM sharedData;
+// pRBCORE_SHM sharedData;
 rmd_motor _DEV_MC[3];
 ROBOT_STATE_DATA ros_data;
 Dynamics::JMDynamics jm_dynamics;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
     spi2can::getInstance();
 
-    sharedData = (pRBCORE_SHM)malloc(sizeof(RBCORE_SHM));
+    // sharedData = (pRBCORE_SHM)malloc(sizeof(RBCORE_SHM));
 
     pthread_t thread_motion;
     pthread_t thread_dynamixel;

@@ -44,7 +44,6 @@ add_executable(
   st_arm_control 
   src/main.cpp 
   src/rt_utils.cpp 
-  src/rmd_can.cpp
   src/spi2can.cpp
   src/rmd_motor.cpp
   src/motor_controller.cpp

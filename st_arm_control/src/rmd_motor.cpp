@@ -1,11 +1,14 @@
 #include "rmd_motor.h"
 
+CAN_msg rmd_motor::ref_msg;
+
 rmd_motor::rmd_motor()
 {
-
+    
 }
 
-void rmd_motor::UpdateRxData(void) {
+void rmd_motor::UpdateRxData(void) 
+{
     joint_temperature = (int)(torque_data[1]);
     
     int temp_torque = (int)(torque_data[2] | (torque_data[3]<<8));
@@ -30,6 +33,125 @@ void rmd_motor::UpdateRxData(void) {
     if (incremental_theta > 4) incremental_theta -= 6.28319;
     else if (incremental_theta < -4) incremental_theta += 6.28319;
     joint_theta += incremental_theta / actuator_gear_ratio * actuator_direction;
+}
+
+void rmd_motor::SetRefDataFFTorqueMode(float p_des, float v_des, float t_ff, float kp, float kd)
+{
+    long p_des_value = 0;
+    long v_des_value;
+    long kp_value;
+    long kd_value;
+    long t_ff_value;
+
+    ref_msg.id = (0x400 + mc_id) & 0xFF;
+
+    ref_msg.data[0] = (p_des_value     ) & 0xFF;
+    ref_msg.data[1] = (p_des_value >> 8) & 0xFF;
+    ref_msg.data[2] = 0x00 & 0xFF;
+    ref_msg.data[3] = 0x00 & 0xFF;
+    ref_msg.data[4] = 0x00 & 0xFF;
+    ref_msg.data[5] = 0x00 & 0xFF;
+    ref_msg.data[6] = 0x00 & 0xFF;
+    ref_msg.data[7] = 0x00 & 0xFF;
+}
+
+void rmd_motor::SetRefDataFeedForwardTorqueControlMode(float a_torque_des)
+{
+    if (a_torque_des > actuator_torque_limit) a_torque_des = actuator_torque_limit;
+    else if (a_torque_des < -1 * actuator_torque_limit) a_torque_des = -1 * actuator_torque_limit;
+
+    long torque_des_value = a_torque_des * torque_to_data * actuator_direction;
+
+    ref_msg.id = (0x140 + mc_id) & 0xFF;
+
+    ref_msg.data[0] = 0x73;
+    ref_msg.data[1] = 0x00 & 0xFF;
+    ref_msg.data[2] = (torque_des_value     ) & 0xFF;
+    ref_msg.data[3] = (torque_des_value >> 8) & 0xFF;
+    ref_msg.data[4] = 0x00 & 0xFF;
+    ref_msg.data[5] = 0x00 & 0xFF;
+    ref_msg.data[6] = 0x00 & 0xFF;
+    ref_msg.data[7] = 0x00 & 0xFF;
+}
+
+void rmd_motor::SetRefDataTorqueControlMode(float a_torque_des)
+{
+    if (a_torque_des > actuator_torque_limit) a_torque_des = actuator_torque_limit;
+    else if (a_torque_des < -1 * actuator_torque_limit) a_torque_des = -1 * actuator_torque_limit;
+
+    long torque_des_value = a_torque_des * torque_to_data * actuator_direction;
+
+    ref_msg.id = (0x140 + mc_id) & 0xFF;
+
+    ref_msg.data[0] = 0xA1;
+    ref_msg.data[1] = 0x00 & 0xFF;
+    ref_msg.data[2] = (torque_des_value     ) & 0xFF;
+    ref_msg.data[3] = (torque_des_value >> 8) & 0xFF;
+    ref_msg.data[4] = 0x00 & 0xFF;
+    ref_msg.data[5] = 0x00 & 0xFF;
+    ref_msg.data[6] = 0x00 & 0xFF;
+    ref_msg.data[7] = 0x00 & 0xFF;
+}
+
+void rmd_motor::SetEnableMotor()
+{
+    ref_msg.id = (0x140 + mc_id) & 0xFF;
+
+    ref_msg.data[0] = 0x88;
+    ref_msg.data[1] = 0x00 & 0xFF;
+    ref_msg.data[2] = 0x00 & 0xFF;
+    ref_msg.data[3] = 0x00 & 0xFF;
+    ref_msg.data[4] = 0x00 & 0xFF;
+    ref_msg.data[5] = 0x00 & 0xFF;
+    ref_msg.data[6] = 0x00 & 0xFF;
+    ref_msg.data[7] = 0x00 & 0xFF;
+
+    is_comm_enabled = true;
+}
+
+void rmd_motor::SetEnableFilter()
+{
+    ref_msg.id = (0x140 + mc_id) & 0xFF;
+
+    ref_msg.data[0] = 0x20 & 0xFF;
+    ref_msg.data[1] = 0x02 & 0xFF;
+    ref_msg.data[2] = 0x00 & 0xFF;
+    ref_msg.data[3] = 0x00 & 0xFF;
+    ref_msg.data[4] = 0x01 & 0xFF;
+    ref_msg.data[5] = 0x00 & 0xFF;
+    ref_msg.data[6] = 0x00 & 0xFF;
+    ref_msg.data[7] = 0x00 & 0xFF;
+}
+
+void rmd_motor::SetCanShieldChannel(int a_channel_num)
+{
+    switch(a_channel_num)
+    {
+        case 0:                         // CHANNEL A
+            can_shield_channel = 0;
+            ref_msg.header = 0x89;
+            break;
+        case 1:                         // CHANNEL B
+            can_shield_channel = 1;
+            ref_msg.header = 0x77;
+            break;
+        case 2:                         // CHANNEL C
+            can_shield_channel = 2;
+            ref_msg.header = 0x89;
+            break;
+        case 3:                         // CHANNEL D
+            can_shield_channel = 3;
+            ref_msg.header = 0x77;
+            break;
+        default:
+            can_shield_channel = 0;
+            ref_msg.header = 0x89;
+    }
+}
+
+void rmd_motor::SetMotorControllerId(int a_id_num)
+{
+    mc_id = a_id_num;
 }
 
 float rmd_motor::GetTheta() 
