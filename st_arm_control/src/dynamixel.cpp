@@ -69,6 +69,7 @@ VectorXd Dynamixel::GetThetaAct()
 
 void Dynamixel::syncReadTheta()
 {
+  zero_manual_offset_[0] = 0.3;
   dynamixel::GroupSyncRead groupSyncRead(portHandler, packetHandler, kRegStandard_PresentPosition, 4);
   for (uint8_t i=0; i < 4; i++) groupSyncRead.addParam(dx_id[i]);
   groupSyncRead.fastSyncReadTxRxPacket();
@@ -136,8 +137,8 @@ void Dynamixel::syncWriteTorque()
 // {XM430-W210} => if effort to current = 1.3*i-0.32 => 500 = 1.345[A] = 1.4285 Nm => 1[Nm] = 350
 int32_t Dynamixel::torqueToValue(double torque)
 {
-  int32_t value_ = int(torque * 285);     // XM430-W210
-  // int32_t value_ = int(torque * 208.427);  // XM430-W350
+  // int32_t value_ = int(torque * 285);     // XM430-W210
+  int32_t value_ = int(torque * 208.427);  // XM430-W350
   // if(value_ > 1) value_ += 10;       // friction compensation
   // else if(value_ < -1) value_ -= 10;
   return value_;

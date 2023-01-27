@@ -60,7 +60,11 @@ namespace Dynamics
         count = 0;
         if      (msg -> data == 0) control_mode = gravity_compensation;
         else if (msg -> data == 1) control_mode = manipulation_mode;
-        else if (msg -> data == 2) control_mode = vision_mode;  
+        else if (msg -> data == 2) 
+        {
+            control_mode = vision_mode;
+            std::cout << "vision mode" << std::endl;
+        }  
         else if (msg -> data == 3) control_mode = draw_infinity;  
         else if (msg -> data == 4) control_mode = weight_estimation;  
         else if (msg -> data == 5) control_mode = joint_space_pd;  
@@ -627,7 +631,8 @@ namespace Dynamics
         tau_gravity_compensation[5] = 0.14096*cos(th[5] + 1.5708)*(1.0*sin(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) - cos(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2]))) + 0.14096*cos(th[4] + 1.5708)*sin(th[5] + 1.5708)*(cos(th[3] - 1.5708)*(cos(th[1])*sin(th[2]) + cos(th[2])*sin(th[1])) + sin(th[3] - 1.5708)*(cos(th[1])*cos(th[2]) - 1.0*sin(th[1])*sin(th[2])));
     
         for(uint8_t i=0; i<6; i++) {
-            tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot[i]; 
+            // tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot[i]; 
+            tau_viscous_damping[i] = gain_d_joint_space[i] * th_dot_sma_filtered[i]; 
             tau_gravity_compensation[i] = tau_gravity_compensation[i] * gain_r[i];
         }
 

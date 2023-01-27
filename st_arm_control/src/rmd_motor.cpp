@@ -43,7 +43,7 @@ void rmd_motor::SetRefDataFFTorqueMode(float p_des, float v_des, float t_ff, flo
     long kd_value;
     long t_ff_value;
 
-    ref_msg.id = (0x400 + mc_id) & 0xFF;
+    ref_msg.id = (0x400 + mc_id);
 
     ref_msg.data[0] = (p_des_value     ) & 0xFF;
     ref_msg.data[1] = (p_des_value >> 8) & 0xFF;
@@ -62,7 +62,7 @@ void rmd_motor::SetRefDataFeedForwardTorqueControlMode(float a_torque_des)
 
     long torque_des_value = a_torque_des * torque_to_data * actuator_direction;
 
-    ref_msg.id = (0x140 + mc_id) & 0xFF;
+    ref_msg.id = 0x140 + mc_id;
 
     ref_msg.data[0] = 0x73;
     ref_msg.data[1] = 0x00 & 0xFF;
@@ -81,21 +81,22 @@ void rmd_motor::SetRefDataTorqueControlMode(float a_torque_des)
 
     long torque_des_value = a_torque_des * torque_to_data * actuator_direction;
 
-    ref_msg.id = (0x140 + mc_id) & 0xFF;
+    ref_msg.id = 0x140 + mc_id;
 
     ref_msg.data[0] = 0xA1;
     ref_msg.data[1] = 0x00 & 0xFF;
-    ref_msg.data[2] = (torque_des_value     ) & 0xFF;
-    ref_msg.data[3] = (torque_des_value >> 8) & 0xFF;
-    ref_msg.data[4] = 0x00 & 0xFF;
-    ref_msg.data[5] = 0x00 & 0xFF;
+    ref_msg.data[2] = 0x00 & 0xFF;
+    ref_msg.data[3] = 0x00 & 0xFF;    
+    ref_msg.data[4] = (torque_des_value     ) & 0xFF;
+    ref_msg.data[5] = (torque_des_value >> 8) & 0xFF;
     ref_msg.data[6] = 0x00 & 0xFF;
     ref_msg.data[7] = 0x00 & 0xFF;
 }
 
 void rmd_motor::SetEnableMotor()
 {
-    ref_msg.id = (0x140 + mc_id) & 0xFF;
+    ref_msg.dlc = 8;
+    ref_msg.id = 0x140 + mc_id;
 
     ref_msg.data[0] = 0x88;
     ref_msg.data[1] = 0x00 & 0xFF;
@@ -111,7 +112,7 @@ void rmd_motor::SetEnableMotor()
 
 void rmd_motor::SetEnableFilter()
 {
-    ref_msg.id = (0x140 + mc_id) & 0xFF;
+    ref_msg.id = (0x140 + mc_id);
 
     ref_msg.data[0] = 0x20 & 0xFF;
     ref_msg.data[1] = 0x02 & 0xFF;

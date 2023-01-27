@@ -10,6 +10,8 @@
 #define MAX_CAN_PER_MSG     7
 #define MAX_BYTE_PER_MSG    84
 
+#define EXTERNAL
+
 class spi2can
 {
     spi2can();

@@ -140,8 +140,8 @@ class Dynamixel{
   dynamixel::PacketHandler * packetHandler;
 
   const int dx_id[4] = {3, 4, 5, 6};
-  // float zero_manual_offset_[4] = {0.2424, 0, 0, 0};
-  float zero_manual_offset_[4] = {0, 0, 0, 0};
+  float zero_manual_offset_[4] = {0.3, 0, 0, 0};
+  // float zero_manual_offset_[4] = {0, 0, 0, 0};
   uint32_t position[4] = {0, 0, 0, 0};
   uint32_t velocity[4] = {0, 0, 0, 0};
   int32_t ref_torque_value_[4] = {0, 0, 0, 0};

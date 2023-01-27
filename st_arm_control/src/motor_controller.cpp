@@ -6,8 +6,8 @@ extern Dynamixel _WRIST_MC;
 
 Motor_Controller::Motor_Controller()
 {
-  //_DEV_MC[0].actuator_direction = -1;    _DEV_MC[0].actuator_gear_ratio = 8;  _DEV_MC[0].joint_initial_position = 0.0;       _DEV_MC[0].torque_to_data = 140;    _DEV_MC[0].actuator_torque_limit = 4.5*2;      _DEV_MC[0].data_to_radian = tic2radL; // 10430.2197
-  _DEV_MC[0].actuator_direction = -1;    _DEV_MC[0].actuator_gear_ratio = 6;  _DEV_MC[0].joint_initial_position = 0.0;       _DEV_MC[0].torque_to_data = 225;    _DEV_MC[0].actuator_torque_limit = 4.5*2;      _DEV_MC[0].data_to_radian = tic2radL; // 10430.2197
+  _DEV_MC[0].actuator_direction = -1;    _DEV_MC[0].actuator_gear_ratio = 8;  _DEV_MC[0].joint_initial_position = 0.0;       _DEV_MC[0].torque_to_data = 140;    _DEV_MC[0].actuator_torque_limit = 4.5*2;      _DEV_MC[0].data_to_radian = tic2radL; // 10430.2197
+  // _DEV_MC[0].actuator_direction = -1;    _DEV_MC[0].actuator_gear_ratio = 6;  _DEV_MC[0].joint_initial_position = 0.0;       _DEV_MC[0].torque_to_data = 225;    _DEV_MC[0].actuator_torque_limit = 4.5*2;      _DEV_MC[0].data_to_radian = tic2radL; // 10430.2197
   _DEV_MC[1].actuator_direction = -1;    _DEV_MC[1].actuator_gear_ratio = 8;  _DEV_MC[1].joint_initial_position = -PI;       _DEV_MC[1].torque_to_data = 200;    _DEV_MC[1].actuator_torque_limit = 4.5*2;      _DEV_MC[1].data_to_radian = tic2radL;   //53.42
   _DEV_MC[2].actuator_direction =  1;    _DEV_MC[2].actuator_gear_ratio = 8;  _DEV_MC[2].joint_initial_position = 2.8992;    _DEV_MC[2].torque_to_data = 200;    _DEV_MC[2].actuator_torque_limit = 4.5*2;      _DEV_MC[2].data_to_radian = tic2radL;
   
@@ -18,10 +18,9 @@ Motor_Controller::Motor_Controller()
 
 void Motor_Controller::EnableMotor()
 {
-  for(uint8_t i=0; i<3; i++) 
-  {
-    _DEV_MC[i].SetEnableMotor();
-  }
+  _DEV_MC[0].SetEnableMotor();
+  // _DEV_MC[1].SetEnableMotor();
+  // _DEV_MC[2].SetEnableMotor();
 }
 
 
@@ -68,12 +67,16 @@ VectorXd Motor_Controller::GetTorque(){
 
 
 void Motor_Controller::SetTorque(VectorXd tau){
-  for(uint8_t i=0; i<3; i++) 
-  {
-    _DEV_MC[i].SetRefDataTorqueControlMode(tau[i]);
-    // _DEV_MC[i].SetRefDataFeedForwardTorqueControlMode(tau[i]);
-    
-  }
+  // for(uint8_t i=0; i<3; i++) 
+  // {
+  //   _DEV_MC[i].SetRefDataTorqueControlMode(tau[i]);
+  //   // _DEV_MC[i].SetRefDataFeedForwardTorqueControlMode(tau[i]);    
+  // }
+
+  // _DEV_MC[0].SetRefDataTorqueControlMode(tau[0]);
+  _DEV_MC[0].SetRefDataFeedForwardTorqueControlMode(tau[0]);
+  // _DEV_MC[0].SetRefDataFFTorqueMode(0,0,tau[0],0,0);
+
 
   for(uint8_t i=0; i<4; i++) torque_wrist[i] = tau[i+3];
   _WRIST_MC.SetTorqueRef(torque_wrist);

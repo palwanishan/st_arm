@@ -90,10 +90,13 @@ void *spi2can::spi2can_thread(void *arg){
         for(int i=0; i<RMD_COUNT; i++)
         {   
             if(_DEV_MC[i].is_comm_enabled)
+            // if(true)
             {
                 if(_DEV_MC[i].can_shield_channel == 0 || _DEV_MC[i].can_shield_channel == 1)
+                // if(true)
                 {
                     memcpy(&(tx_1[i*12]), &(_DEV_MC[i].ref_msg), 12);
+                    // std::cout << "successfully copied mem " << i << std::endl;
                 }
                 else if(_DEV_MC[i].can_shield_channel == 2 || _DEV_MC[i].can_shield_channel == 3)
                 {

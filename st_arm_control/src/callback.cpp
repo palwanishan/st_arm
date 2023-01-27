@@ -46,6 +46,7 @@ void Callback::SwitchGainP(const std_msgs::Float32MultiArrayConstPtr &msg)
 void Callback::SwitchGainD(const std_msgs::Float32MultiArrayConstPtr &msg)
 {
   for(uint8_t i = 0; i < 7; i++) jm_dynamics.gain_d_joint_space[i] = msg -> data.at(i);
+  std::cout << "changed gain d" << std::endl;
 }
 
 void Callback::SwitchGainR(const std_msgs::Float32MultiArrayConstPtr &msg)
