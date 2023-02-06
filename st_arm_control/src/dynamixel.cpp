@@ -70,12 +70,20 @@ VectorXd Dynamixel::GetThetaAct()
 void Dynamixel::syncReadTheta()
 {
   zero_manual_offset_[0] = 0.3;
+  
+  int dxl_comm_result = COMM_TX_FAIL;
+  
   dynamixel::GroupSyncRead groupSyncRead(portHandler, packetHandler, kRegStandard_PresentPosition, 4);
   for (uint8_t i=0; i < 4; i++) groupSyncRead.addParam(dx_id[i]);
-  groupSyncRead.fastSyncReadTxRxPacket();
-  for(uint8_t i=0; i < 4; i++) position[i] = groupSyncRead.getData(dx_id[i], kRegStandard_PresentPosition, 4);
+  dxl_comm_result = groupSyncRead.fastSyncReadTxRxPacket();
+  if (dxl_comm_result == COMM_SUCCESS) 
+  {
+    for(uint8_t i=0; i < 4; i++) position[i] = groupSyncRead.getData(dx_id[i], kRegStandard_PresentPosition, 4);
+    for(uint8_t i=0; i < 4; i++) th_[i] = convertValue2Radian(position[i]) - PI + zero_manual_offset_[i];
+  }
+  else ROS_ERROR("Failed to fastSyncReadTxRxPacket");
+  
   groupSyncRead.clearParam();
-  for(uint8_t i=0; i < 4; i++) th_[i] = convertValue2Radian(position[i]) - PI + zero_manual_offset_[i];
 }
 
 
