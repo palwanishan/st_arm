@@ -5,12 +5,10 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #include <vector>
-#include <QVector>
-#include <QByteArray>
 
 #define RMD_COUNT 3
 
-// extern pRBCORE_SHM sharedData;
+extern pRBCORE_SHM sharedData;
 extern rmd_motor _DEV_MC[RMD_COUNT];
 
 #define SPI_SPEED 4000000
@@ -20,7 +18,6 @@ unsigned char spi_speed = SPI_SPEED;
 unsigned char lsb = 0x01;
 
 using namespace std;
-
 spi2can::spi2can()
 {
 #ifdef EXTERNAL
@@ -86,22 +83,33 @@ void *spi2can::spi2can_thread(void *arg){
 
     clock_gettime(CLOCK_REALTIME, &TIME_NEXT);
     while(true){
+        for(int j=0; j<8; j++){
+            rmd_can::reference_msg[0].data[j] = _DEV_MC[0].ref_data[j];
+            rmd_can::reference_msg[1].data[j] = _DEV_MC[0].ref_data2[j];
+            rmd_can::reference_msg[2].data[j] = _DEV_MC[1].ref_data[j];
+            rmd_can::reference_msg[3].data[j] = _DEV_MC[1].ref_data2[j];
+            rmd_can::reference_msg[4].data[j] = _DEV_MC[2].ref_data[j];
+            rmd_can::reference_msg[5].data[j] = _DEV_MC[2].ref_data2[j];
+        }
 
-        for(int i=0; i<RMD_COUNT; i++)
-        {   
-            if(_DEV_MC[i].is_comm_enabled)
-            // if(true)
-            {
-                if(_DEV_MC[i].can_shield_channel == 0 || _DEV_MC[i].can_shield_channel == 1)
-                // if(true)
-                {
-                    memcpy(&(tx_1[i*12]), &(_DEV_MC[i].ref_msg), 12);
-                    // std::cout << "successfully copied mem " << i << std::endl;
-                }
-                else if(_DEV_MC[i].can_shield_channel == 2 || _DEV_MC[i].can_shield_channel == 3)
-                {
-                    memcpy(&(tx_2[i*12]), &(_DEV_MC[i].ref_msg), 12);
-                }
+        for(int i=0; i<6; i++){
+            if(sharedData->rmd_motor_run_flag[i]){
+                pthread_mutex_lock(&rmd_can::mutex_reference[i]);
+                memcpy(&(tx_1[i*12]), &(rmd_can::reference_msg[i]), 12);
+                pthread_mutex_unlock(&rmd_can::mutex_reference[i]);
+            }
+        }
+
+        for(int j=0; j<8; j++){
+            rmd_can::reference_msg[6].data[j] = _DEV_MC[2].ref_data[j];
+            rmd_can::reference_msg[7].data[j] = _DEV_MC[2].ref_data2[j];
+        }
+
+        for(int i=0; i<6; i++){
+            if(sharedData->rmd_motor_run_flag[i+6]){
+                pthread_mutex_lock(&rmd_can::mutex_reference[i+6]);
+                memcpy(&(tx_2[i*12]), &(rmd_can::reference_msg[i+6]), 12);
+                pthread_mutex_unlock(&rmd_can::mutex_reference[i+6]);
             }
         }
 
@@ -138,11 +146,6 @@ void *spi2can::spi2can_thread(void *arg){
                     {
                         _DEV_MC[bno].unknown_value = (int)recv_data1[0];
                     }
-                }
-                else if(id>=0x500 && id<=0x500+RMD_COUNT)
-                {
-                    int bno = id-0x500;
-                    _DEV_MC[bno].count++;
                 }
             }else recv_buf1.remove(0, 1);
         }

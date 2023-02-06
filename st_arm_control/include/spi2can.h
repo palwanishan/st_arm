@@ -5,12 +5,15 @@
 
 #include "rt_utils.h"
 #include "rmd_motor.h"
-// #include "shared_memory.h"
+#include "shared_memory.h"
 
 #define MAX_CAN_PER_MSG     7
 #define MAX_BYTE_PER_MSG    84
 
-#define EXTERNAL
+typedef union{
+    ST_CAN  can_msg[MAX_CAN_PER_MSG];
+    unsigned char data[MAX_BYTE_PER_MSG];
+}U_MSG;
 
 class spi2can
 {
